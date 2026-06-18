@@ -1,5 +1,10 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
+import { MetricsMiddleware } from './presentation/middleware/metrics.middleware';
 import { ConfigModule } from '@nestjs/config';
+import { TerminusModule } from '@nestjs/terminus';
+import { LoggerModule } from 'nestjs-pino';
+import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { ImportController } from './presentation/controllers/import.controller';
 import { DashboardController } from './presentation/controllers/dashboard.controller';
@@ -7,6 +12,7 @@ import { PropertiesController } from './presentation/controllers/properties.cont
 import { BedsController } from './presentation/controllers/beds.controller';
 import { ResidentsController } from './presentation/controllers/residents.controller';
 import { BookingsController } from './presentation/controllers/bookings.controller';
+import { HealthController } from './presentation/controllers/health.controller';
 import { ImportXlsxUseCase } from './application/use-cases/import-xlsx.use-case';
 import { GetDashboardStatsUseCase } from './application/use-cases/get-dashboard-stats.use-case';
 import { GetPropertiesUseCase } from './application/use-cases/get-properties.use-case';
@@ -24,8 +30,19 @@ import { DeleteBookingUseCase } from './application/use-cases/delete-booking.use
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+        transport: process.env.NODE_ENV !== 'production'
+          ? { target: 'pino-pretty', options: { colorize: true, singleLine: true } }
+          : undefined,
+        redact: ['req.headers.authorization'],
+      },
+    }),
     DatabaseModule,
+    TerminusModule,
   ],
   controllers: [
     ImportController,
@@ -34,8 +51,10 @@ import { DeleteBookingUseCase } from './application/use-cases/delete-booking.use
     BedsController,
     ResidentsController,
     BookingsController,
+    HealthController,
   ],
   providers: [
+    { provide: APP_FILTER, useClass: SentryGlobalFilter },
     ImportXlsxUseCase,
     GetDashboardStatsUseCase,
     GetPropertiesUseCase,
@@ -52,4 +71,8 @@ import { DeleteBookingUseCase } from './application/use-cases/delete-booking.use
     DeleteBookingUseCase,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(MetricsMiddleware).forRoutes('*');
+  }
+}

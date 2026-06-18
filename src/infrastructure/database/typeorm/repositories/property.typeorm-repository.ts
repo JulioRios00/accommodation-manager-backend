@@ -13,9 +13,7 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
   ) {}
 
   async findAll(): Promise<Property[]> {
-    console.log('[PropertyRepo] findAll — querying WHERE active = true');
     const entities = await this.repo.find({ where: { active: true }, relations: ['beds'] });
-    console.log(`[PropertyRepo] findAll — raw DB rows (${entities.length}):`, entities.map(e => ({ id: e.id, code: e.code, active: e.active })));
     return entities.map(this.toDomain);
   }
 
@@ -30,10 +28,8 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
   }
 
   async save(property: Partial<Property>): Promise<Property> {
-    console.log('[PropertyRepo] save — input:', { ...property, active: property.active });
     const entity = this.repo.create(property as DeepPartial<PropertyOrmEntity>);
     const saved = await this.repo.save(entity);
-    console.log('[PropertyRepo] save — saved row active =', saved.active);
     return this.toDomain(saved);
   }
 

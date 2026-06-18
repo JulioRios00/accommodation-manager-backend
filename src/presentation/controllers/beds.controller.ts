@@ -29,13 +29,6 @@ export class BedsController {
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id') id: string) {
-    console.log(`[BedsController] DELETE /beds/${id}`);
-    try {
-      await this.deleteBed.execute(id);
-      console.log(`[BedsController] DELETE /beds/${id} — success`);
-    } catch (err) {
-      console.error(`[BedsController] DELETE /beds/${id} — error:`, err);
-      throw err;
-    }
+    await this.deleteBed.execute(id);
   }
 }
