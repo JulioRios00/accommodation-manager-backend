@@ -20,13 +20,22 @@ import { BOOKING_REPOSITORY } from '../../domain/booking/booking.repository';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
+        const databaseUrl = config.get<string>('DATABASE_URL');
+        if (databaseUrl) {
+          return {
+            type: 'postgres' as const,
+            url: databaseUrl,
+            entities: [PropertyOrmEntity, BedOrmEntity, ResidentOrmEntity, BookingOrmEntity],
+            synchronize: true,
+            ssl: { rejectUnauthorized: false },
+          };
+        }
         const password = config.get<string>('DB_PASSWORD', '');
         return {
           type: 'postgres' as const,
           host: config.get<string>('DB_HOST', 'localhost'),
           port: config.get<number>('DB_PORT', 5432),
           username: config.get<string>('DB_USER', 'postgres'),
-          // empty string = no password (Homebrew local trust auth)
           password: password || undefined,
           database: config.get<string>('DB_NAME', 'accommodation'),
           entities: [PropertyOrmEntity, BedOrmEntity, ResidentOrmEntity, BookingOrmEntity],
