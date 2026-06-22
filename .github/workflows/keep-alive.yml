@@ -9,7 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping health endpoint
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL || 'https://accommodation-manager-backend.onrender.com' }}
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.BACKEND_URL }}/api/health/live")
+          echo "Pinging $BACKEND_URL/api/health/live"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/api/health/live")
           echo "Response: $STATUS"
           [ "$STATUS" = "200" ] || exit 1
