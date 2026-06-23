@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { MetricsMiddleware } from './presentation/middleware/metrics.middleware';
+import { ClerkAuthGuard } from './presentation/guards/clerk-auth.guard';
 import { ConfigModule } from '@nestjs/config';
 import { TerminusModule } from '@nestjs/terminus';
 import { LoggerModule } from 'nestjs-pino';
@@ -55,6 +56,7 @@ import { DeleteBookingUseCase } from './application/use-cases/delete-booking.use
   ],
   providers: [
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
+    { provide: APP_GUARD, useClass: ClerkAuthGuard },
     ImportXlsxUseCase,
     GetDashboardStatsUseCase,
     GetPropertiesUseCase,

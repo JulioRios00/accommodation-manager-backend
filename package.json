@@ -21,12 +21,13 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@clerk/backend": "^2.33.5",
     "@nestjs/cli": "^11.0.0",
-    "@nestjs/schematics": "^11.1.0",
     "@nestjs/common": "^11.1.27",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.27",
     "@nestjs/platform-express": "^11.1.27",
+    "@nestjs/schematics": "^11.1.0",
     "@nestjs/terminus": "^11.1.1",
     "@nestjs/typeorm": "^11.0.1",
     "@sentry/nestjs": "^10.58.0",

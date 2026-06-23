@@ -16,3 +16,5 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false

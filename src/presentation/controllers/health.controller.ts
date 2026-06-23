@@ -1,7 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
 import { HealthCheck, HealthCheckService, TypeOrmHealthIndicator } from '@nestjs/terminus';
 import { requestMetrics } from '../../infrastructure/metrics/request-metrics';
+import { Public } from '../decorators/public.decorator';
 
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(
