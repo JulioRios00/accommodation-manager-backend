@@ -3,6 +3,7 @@ import { GetBookingsUseCase } from '../../application/use-cases/get-bookings.use
 import { SaveBookingUseCase, SaveBookingDto } from '../../application/use-cases/save-booking.use-case';
 import { DeleteBookingUseCase } from '../../application/use-cases/delete-booking.use-case';
 import { BookingStatus } from '../../domain/booking/booking.entity';
+import { Roles } from '../decorators/roles.decorator';
 
 @Controller('bookings')
 export class BookingsController {
@@ -18,17 +19,20 @@ export class BookingsController {
   }
 
   @Post()
+  @Roles('sysadmin', 'manager')
   async create(@Body() dto: SaveBookingDto) {
     return this.saveBooking.execute(dto);
   }
 
   @Put(':id')
+  @Roles('sysadmin', 'manager')
   async update(@Param('id') id: string, @Body() dto: SaveBookingDto) {
     return this.saveBooking.execute({ ...dto, id });
   }
 
   @Delete(':id')
   @HttpCode(204)
+  @Roles('sysadmin', 'manager')
   async remove(@Param('id') id: string) {
     await this.deleteBooking.execute(id);
   }

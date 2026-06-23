@@ -7,12 +7,14 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ImportXlsxUseCase } from '../../application/use-cases/import-xlsx.use-case';
+import { Roles } from '../decorators/roles.decorator';
 
 @Controller('import')
 export class ImportController {
   constructor(private readonly importXlsxUseCase: ImportXlsxUseCase) {}
 
   @Post()
+  @Roles('sysadmin', 'manager')
   @UseInterceptors(FileInterceptor('file'))
   async importFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file provided');
