@@ -1,0 +1,33 @@
+export class MaintenanceTicket {
+  id: string;
+  orderNumber: string;
+  propertyId: string;
+  serviceProviderId: string | null;
+  title: string;
+  descriptionRequested: string | null;
+  additionalDetails: string | null;
+  descriptionDone: string | null;
+  materials: string | null;
+  priority: number;
+  urgency: string;
+  status: string;
+  clientName: string | null;
+  clientPhone: string | null;
+  approvedBy: string | null;
+  approvalDate: Date | null;
+  chargedBy: string | null;
+  houseCompany: string | null;
+  maintenanceCost: number | null;
+  materialCost: number | null;
+  totalCost: number | null;
+  entryNoticeDate: Date | null;
+  entryCheckIn: string | null;
+  entryCheckOut: string | null;
+  causedByResident: boolean;
+  tags: string[];
+  clerkUserId: string | null;
+  clerkUserName: string | null;
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}

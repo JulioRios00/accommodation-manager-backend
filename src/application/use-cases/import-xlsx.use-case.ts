@@ -25,7 +25,6 @@ export class ImportXlsxUseCase {
         bu: row.bu,
         area: row.area,
         fullAddress: row.fullAddress,
-        officeKeys: row.officeKeys,
         keysCount: row.keysCount,
         securityKeysCount: row.securityKeysCount,
         fobCount: row.fobCount,

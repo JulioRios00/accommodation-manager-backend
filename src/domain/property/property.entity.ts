@@ -48,6 +48,9 @@ export class Property {
   // Sales
   salesDescription: string | null;
 
+  // Relations
+  landlordId: string | null;
+
   active: boolean;
   createdAt: Date;
   updatedAt: Date;

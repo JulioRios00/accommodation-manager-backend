@@ -128,6 +128,10 @@ export class PropertyOrmEntity {
   @Column({ type: 'text', nullable: true })
   salesDescription: string;
 
+  // Relations
+  @Column({ type: 'uuid', nullable: true })
+  landlordId: string;
+
   @Column({ default: true })
   active: boolean;
 

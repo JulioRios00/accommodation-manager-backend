@@ -39,6 +39,7 @@ export interface SavePropertyDto {
   internetStatus?: string | null;
   internetContractEndDate?: string | null;
   salesDescription?: string | null;
+  landlordId?: string | null;
 }
 
 @Injectable()
@@ -51,8 +52,8 @@ export class SavePropertyUseCase {
     if (dto.id) {
       const existing = await this.repo.findById(dto.id);
       if (!existing) throw new NotFoundException(`Property ${dto.id} not found`);
-      return this.repo.save(dto);
+      return this.repo.save(dto as any);
     }
-    return this.repo.save({ ...dto, active: true });
+    return this.repo.save({ ...dto, active: true } as any);
   }
 }
