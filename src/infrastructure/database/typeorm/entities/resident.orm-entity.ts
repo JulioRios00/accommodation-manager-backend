@@ -37,6 +37,21 @@ export class ResidentOrmEntity {
   @Column({ length: 100, nullable: true })
   source: string;
 
+  @Column({ nullable: true, type: 'int' })
+  paymentDueDay: number;
+
+  @Column({ type: 'text', nullable: true })
+  comments: string;
+
+  @Column({ default: false })
+  delinquent: boolean;
+
+  @Column({ default: false })
+  hasObservation: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  observation: string;
+
   @Column({ default: true })
   active: boolean;
 
