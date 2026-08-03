@@ -19,6 +19,8 @@ import { HealthController } from './presentation/controllers/health.controller';
 import { LandlordsController } from './presentation/controllers/landlords.controller';
 import { ServiceProvidersController } from './presentation/controllers/service-providers.controller';
 import { MaintenanceTicketsController } from './presentation/controllers/maintenance-tickets.controller';
+import { PortalController } from './presentation/controllers/portal.controller';
+import { SubmitResidentTicketUseCase } from './application/use-cases/submit-resident-ticket.use-case';
 import { KeyLogsController } from './presentation/controllers/key-logs.controller';
 import { CheckoutController } from './presentation/controllers/checkout.controller';
 import { RentPaymentsController } from './presentation/controllers/rent-payments.controller';
@@ -26,8 +28,15 @@ import { LandlordPaymentsController } from './presentation/controllers/landlord-
 import { DepositTransactionsController } from './presentation/controllers/deposit-transactions.controller';
 import { ReportsController } from './presentation/controllers/reports.controller';
 import { CompaniesController } from './presentation/controllers/companies.controller';
+import { BedroomsController } from './presentation/controllers/bedrooms.controller';
 
 import { ImportXlsxUseCase } from './application/use-cases/import-xlsx.use-case';
+import { ImportBillsUseCase } from './application/use-cases/import-bills.use-case';
+import { ImportResidentsToClerkUseCase } from './application/use-cases/import-residents-to-clerk.use-case';
+import { ImportMaintenanceUseCase } from './application/use-cases/import-maintenance.use-case';
+import { ImportDepositsUseCase } from './application/use-cases/import-deposits.use-case';
+import { ImportLandlordPaymentsUseCase } from './application/use-cases/import-landlord-payments.use-case';
+import { ImportResidentPaymentsUseCase } from './application/use-cases/import-resident-payments.use-case';
 import { GetDashboardStatsUseCase } from './application/use-cases/get-dashboard-stats.use-case';
 import { GetPropertiesUseCase } from './application/use-cases/get-properties.use-case';
 import { GetBedsUseCase } from './application/use-cases/get-beds.use-case';
@@ -72,6 +81,17 @@ import { GetDelinquencyReportUseCase } from './application/use-cases/get-delinqu
 import { GetCompaniesUseCase } from './application/use-cases/get-companies.use-case';
 import { SaveCompanyUseCase } from './application/use-cases/save-company.use-case';
 import { DeleteCompanyUseCase } from './application/use-cases/delete-company.use-case';
+import { GetBedroomsUseCase } from './application/use-cases/get-bedrooms.use-case';
+import { SaveBedroomUseCase } from './application/use-cases/save-bedroom.use-case';
+import { DeleteBedroomUseCase } from './application/use-cases/delete-bedroom.use-case';
+import { ClaimTicketUseCase } from './application/use-cases/claim-ticket.use-case';
+import { CloseTicketUseCase } from './application/use-cases/close-ticket.use-case';
+import { GetPropertySpacesUseCase } from './application/use-cases/get-property-spaces.use-case';
+import { SavePropertySpaceUseCase } from './application/use-cases/save-property-space.use-case';
+import { DeletePropertySpaceUseCase } from './application/use-cases/delete-property-space.use-case';
+import { SaveSpaceItemUseCase } from './application/use-cases/save-space-item.use-case';
+import { DeleteSpaceItemUseCase } from './application/use-cases/delete-space-item.use-case';
+import { PropertySpacesController } from './presentation/controllers/property-spaces.controller';
 
 @Module({
   imports: [
@@ -92,22 +112,24 @@ import { DeleteCompanyUseCase } from './application/use-cases/delete-company.use
   controllers: [
     ImportController, DashboardController, PropertiesController, BedsController,
     ResidentsController, BookingsController, HealthController,
-    LandlordsController, ServiceProvidersController, MaintenanceTicketsController,
+    LandlordsController, ServiceProvidersController, MaintenanceTicketsController, PortalController,
     KeyLogsController, CheckoutController, RentPaymentsController, LandlordPaymentsController,
-    DepositTransactionsController, ReportsController, CompaniesController,
+    DepositTransactionsController, ReportsController, CompaniesController, BedroomsController,
+    PropertySpacesController,
   ],
   providers: [
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
     { provide: APP_GUARD, useClass: ClerkAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
-    ImportXlsxUseCase, GetDashboardStatsUseCase,
+    ImportXlsxUseCase, ImportBillsUseCase, ImportMaintenanceUseCase, ImportDepositsUseCase, ImportLandlordPaymentsUseCase, ImportResidentPaymentsUseCase, ImportResidentsToClerkUseCase,
+    GetDashboardStatsUseCase,
     GetPropertiesUseCase, GetBedsUseCase, GetResidentsUseCase, GetBookingsUseCase,
     SavePropertyUseCase, DeletePropertyUseCase, SaveBedUseCase, DeleteBedUseCase,
     SaveResidentUseCase, DeleteResidentUseCase, SaveBookingUseCase, DeleteBookingUseCase,
     GetLandlordsUseCase, SaveLandlordUseCase, DeleteLandlordUseCase,
     GetPropertyAdministratorsUseCase, SavePropertyAdministratorUseCase, DeletePropertyAdministratorUseCase,
     GetServiceProvidersUseCase, SaveServiceProviderUseCase, DeleteServiceProviderUseCase,
-    GetMaintenanceTicketsUseCase, SaveMaintenanceTicketUseCase, DeleteMaintenanceTicketUseCase, AddTicketActivityUseCase,
+    GetMaintenanceTicketsUseCase, SaveMaintenanceTicketUseCase, DeleteMaintenanceTicketUseCase, AddTicketActivityUseCase, ClaimTicketUseCase, CloseTicketUseCase, SubmitResidentTicketUseCase,
     GetKeyLogsUseCase, SaveKeyLogUseCase, DeleteKeyLogUseCase,
     CheckoutUseCase,
     GetRentPaymentsUseCase, SaveRentPaymentUseCase, DeleteRentPaymentUseCase, AddRentInstallmentUseCase,
@@ -115,6 +137,9 @@ import { DeleteCompanyUseCase } from './application/use-cases/delete-company.use
     GetDepositTransactionsUseCase, SaveDepositTransactionUseCase, DeleteDepositTransactionUseCase,
     GetDelinquencyReportUseCase,
     GetCompaniesUseCase, SaveCompanyUseCase, DeleteCompanyUseCase,
+    GetBedroomsUseCase, SaveBedroomUseCase, DeleteBedroomUseCase,
+    GetPropertySpacesUseCase, SavePropertySpaceUseCase, DeletePropertySpaceUseCase,
+    SaveSpaceItemUseCase, DeleteSpaceItemUseCase,
   ],
 })
 export class AppModule implements NestModule {

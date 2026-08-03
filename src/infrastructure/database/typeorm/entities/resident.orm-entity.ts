@@ -13,6 +13,9 @@ export class ResidentOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ length: 200, nullable: true, unique: true })
+  clerkUserId: string;
+
   @Column({ length: 200 })
   fullName: string;
 
@@ -21,6 +24,9 @@ export class ResidentOrmEntity {
 
   @Column({ length: 50, nullable: true })
   telephone: string;
+
+  @Column({ length: 50, nullable: true })
+  gender: string;
 
   @Column({ length: 100, nullable: true })
   nationality: string;

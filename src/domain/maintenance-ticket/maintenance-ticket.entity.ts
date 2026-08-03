@@ -1,7 +1,12 @@
+export type TicketCategory = 'plumbing' | 'electrical' | 'internet' | 'other';
+
 export class MaintenanceTicket {
   id: string;
   orderNumber: string;
   propertyId: string;
+  category: TicketCategory | null;
+  bedId: string | null;
+  residentId: string | null;
   serviceProviderId: string | null;
   title: string;
   descriptionRequested: string | null;
@@ -15,6 +20,8 @@ export class MaintenanceTicket {
   clientPhone: string | null;
   approvedBy: string | null;
   approvalDate: Date | null;
+  paymentApprovedBy: string | null;
+  timeframe: string | null;
   chargedBy: string | null;
   houseCompany: string | null;
   maintenanceCost: number | null;

@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { PropertyOrmEntity } from './property.orm-entity';
 import { BookingOrmEntity } from './booking.orm-entity';
+import { BedroomOrmEntity } from './bedroom.orm-entity';
 
 @Entity('beds')
 export class BedOrmEntity {
@@ -17,6 +18,18 @@ export class BedOrmEntity {
 
   @Column()
   propertyId: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  bedroomId: string;
+
+  @Column({ length: 100, nullable: true })
+  name: string;
+
+  @Column({ type: 'int', nullable: true })
+  position: number;
+
+  @Column({ length: 20, default: 'vacant' })
+  status: string;
 
   @Column()
   bedNumber: number;
@@ -47,6 +60,9 @@ export class BedOrmEntity {
 
   @ManyToOne(() => PropertyOrmEntity, (property) => property.beds)
   property: PropertyOrmEntity;
+
+  @ManyToOne(() => BedroomOrmEntity, (bedroom) => bedroom.beds, { nullable: true })
+  bedroom: BedroomOrmEntity;
 
   @OneToMany(() => BookingOrmEntity, (booking) => booking.bed)
   bookings: BookingOrmEntity[];

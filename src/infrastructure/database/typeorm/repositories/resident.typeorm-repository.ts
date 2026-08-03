@@ -28,6 +28,16 @@ export class ResidentTypeOrmRepository implements IResidentRepository {
     return this.toDomain(saved);
   }
 
+  async findByEmail(email: string): Promise<Resident | null> {
+    const entity = await this.repo.findOne({ where: { email, active: true } });
+    return entity ? this.toDomain(entity) : null;
+  }
+
+  async findByClerkUserId(clerkUserId: string): Promise<Resident | null> {
+    const entity = await this.repo.findOne({ where: { clerkUserId, active: true } });
+    return entity ? this.toDomain(entity) : null;
+  }
+
   async delete(id: string): Promise<void> {
     await this.repo.update(id, { active: false });
   }
@@ -35,9 +45,11 @@ export class ResidentTypeOrmRepository implements IResidentRepository {
   private toDomain(entity: ResidentOrmEntity): Resident {
     const r = new Resident();
     r.id = entity.id;
+    r.clerkUserId = entity.clerkUserId ?? null;
     r.fullName = entity.fullName;
     r.email = entity.email;
     r.telephone = entity.telephone;
+    r.gender = entity.gender ?? null;
     r.nationality = entity.nationality;
     r.personalId = entity.personalId;
     r.iban = entity.iban;

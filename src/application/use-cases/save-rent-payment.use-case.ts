@@ -11,6 +11,7 @@ export interface SaveRentPaymentDto {
   rentAmount: number;
   amountPaid?: number;
   lateStatus?: string;
+  datePaid?: string | null;
   notes?: string | null;
 }
 
@@ -23,6 +24,6 @@ export class SaveRentPaymentUseCase {
       const existing = await this.repo.findById(dto.id);
       if (!existing) throw new NotFoundException(`RentPayment ${dto.id} not found`);
     }
-    return this.repo.save({ ...dto, amountPaid: dto.amountPaid ?? 0, lateStatus: dto.lateStatus ?? 'on_time' });
+    return this.repo.save({ ...dto, amountPaid: dto.amountPaid ?? 0, lateStatus: dto.lateStatus ?? 'on_time', datePaid: dto.datePaid ? new Date(dto.datePaid) : null } as any);
   }
 }

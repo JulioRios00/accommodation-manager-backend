@@ -1,1 +1,1 @@
-export type UserRole = 'sysadmin' | 'manager' | 'administrator' | 'staff';
+export type UserRole = 'sysadmin' | 'manager' | 'administrator' | 'staff' | 'resident';

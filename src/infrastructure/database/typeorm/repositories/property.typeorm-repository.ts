@@ -27,6 +27,16 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
     return entity ? this.toDomain(entity) : null;
   }
 
+  async findByMprn(mprn: string): Promise<Property | null> {
+    const entity = await this.repo.findOne({ where: { electricityMprn: mprn, active: true } });
+    return entity ? this.toDomain(entity) : null;
+  }
+
+  async findByGprn(gprn: string): Promise<Property | null> {
+    const entity = await this.repo.findOne({ where: { gasGprn: gprn, active: true } });
+    return entity ? this.toDomain(entity) : null;
+  }
+
   async save(property: Partial<Property>): Promise<Property> {
     const entity = this.repo.create(property as DeepPartial<PropertyOrmEntity>);
     const saved = await this.repo.save(entity);
@@ -85,7 +95,15 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
     p.internetPaymentType = entity.internetPaymentType ?? null;
     p.internetStatus = entity.internetStatus ?? null;
     p.internetContractEndDate = entity.internetContractEndDate ?? null;
+    p.internetOnlineLink = entity.internetOnlineLink ?? null;
+    p.internetBusinessPhone = entity.internetBusinessPhone ?? null;
+    p.internetNotes = entity.internetNotes ?? null;
+    p.wastePhone = entity.wastePhone ?? null;
     p.salesDescription = entity.salesDescription ?? null;
+    p.eirCode = entity.eirCode ?? null;
+    p.propertyType = entity.propertyType ?? null;
+    p.crn = entity.crn ?? null;
+    p.propertyEmail = entity.propertyEmail ?? null;
     p.landlordId = entity.landlordId ?? null;
     p.active = entity.active;
     p.createdAt = entity.createdAt;

@@ -17,6 +17,7 @@ export class RentPayment {
   rentAmount: number;
   amountPaid: number;
   lateStatus: string;
+  datePaid: Date | null;
   notes: string | null;
   installments: RentPaymentInstallment[];
   active: boolean;

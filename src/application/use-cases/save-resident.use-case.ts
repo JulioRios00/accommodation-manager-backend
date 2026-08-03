@@ -4,9 +4,11 @@ import { IResidentRepository, RESIDENT_REPOSITORY } from '../../domain/resident/
 
 export interface SaveResidentDto {
   id?: string;
+  clerkUserId?: string | null;
   fullName: string;
   email?: string | null;
   telephone?: string | null;
+  gender?: string | null;
   nationality?: string | null;
   personalId?: string | null;
   iban?: string | null;

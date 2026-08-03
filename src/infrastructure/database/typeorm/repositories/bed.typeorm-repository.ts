@@ -14,7 +14,7 @@ export class BedTypeOrmRepository implements IBedRepository {
 
   async findAll(propertyId?: string): Promise<Bed[]> {
     const where = propertyId ? { propertyId, active: true } : { active: true };
-    const entities = await this.repo.find({ where, relations: ['property'] });
+    const entities = await this.repo.find({ where, relations: ['property', 'bedroom'] });
     return entities.map(this.toDomain);
   }
 
@@ -61,11 +61,17 @@ export class BedTypeOrmRepository implements IBedRepository {
     b.propertyId = entity.propertyId;
     b.propertyCode = entity.property?.code;
     b.bedNumber = entity.bedNumber;
+    b.bedroomId = entity.bedroomId ?? null;
+    b.bedroomName = entity.bedroom?.name ?? null;
+    b.name = entity.name ?? null;
+    b.position = entity.position ?? null;
+    b.status = (entity.status ?? 'vacant') as any;
     b.bedroomType = entity.bedroomType;
     b.sex = entity.sex;
     b.bedSize = entity.bedSize;
     b.depositAmount = Number(entity.depositAmount);
     b.rentAmount = Number(entity.rentAmount);
+    b.active = entity.active;
     b.createdAt = entity.createdAt;
     b.updatedAt = entity.updatedAt;
     return b;

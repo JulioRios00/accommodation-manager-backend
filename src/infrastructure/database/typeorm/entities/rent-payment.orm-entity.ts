@@ -11,6 +11,7 @@ export class RentPaymentOrmEntity {
   @Column({ type: 'decimal', precision: 10, scale: 2 }) rentAmount: number;
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 }) amountPaid: number;
   @Column({ length: 30, default: 'on_time' }) lateStatus: string;
+  @Column({ type: 'date', nullable: true }) datePaid: Date;
   @Column({ type: 'text', nullable: true }) notes: string;
   @Column({ default: true }) active: boolean;
   @CreateDateColumn() createdAt: Date;

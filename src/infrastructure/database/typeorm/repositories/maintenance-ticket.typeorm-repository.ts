@@ -22,13 +22,15 @@ export class MaintenanceTicketTypeOrmRepository implements IMaintenanceTicketRep
     return e ? this.toDomain(e) : null;
   }
 
+  async findQueue(): Promise<MaintenanceTicket[]> {
+    return (await this.repo.find({ where: { status: 'open', active: true }, order: { createdAt: 'ASC' } })).map(this.toDomain);
+  }
+
   async getNextOrderNumber(): Promise<string> {
-    const result = await this.repo
-      .createQueryBuilder('t')
-      .select("MAX(CAST(SPLIT_PART(t.orderNumber, '-', 2) AS INTEGER))", 'max')
-      .getRawOne();
-    const next = (Number(result?.max) || 0) + 1;
-    return `STA-${String(next).padStart(3, '0')}`;
+    const [row] = await this.repo.query(
+      `SELECT COALESCE(MAX(CAST(NULLIF(SPLIT_PART("orderNumber", '-', 2), '') AS INTEGER)), 0) + 1 AS next FROM maintenance_tickets`,
+    );
+    return `STA-${String(row.next).padStart(3, '0')}`;
   }
 
   async save(ticket: Partial<MaintenanceTicket>): Promise<MaintenanceTicket> {
@@ -43,12 +45,14 @@ export class MaintenanceTicketTypeOrmRepository implements IMaintenanceTicketRep
   private toDomain(e: MaintenanceTicketOrmEntity): MaintenanceTicket {
     const d = new MaintenanceTicket();
     d.id = e.id; d.orderNumber = e.orderNumber; d.propertyId = e.propertyId;
+    d.category = (e.category as any) ?? null; d.bedId = e.bedId ?? null; d.residentId = e.residentId ?? null;
     d.serviceProviderId = e.serviceProviderId ?? null; d.title = e.title;
     d.descriptionRequested = e.descriptionRequested ?? null;
     d.additionalDetails = e.additionalDetails ?? null; d.descriptionDone = e.descriptionDone ?? null;
     d.materials = e.materials ?? null; d.priority = e.priority ?? 0; d.urgency = e.urgency;
     d.status = e.status; d.clientName = e.clientName ?? null; d.clientPhone = e.clientPhone ?? null;
     d.approvedBy = e.approvedBy ?? null; d.approvalDate = e.approvalDate ?? null;
+    d.paymentApprovedBy = e.paymentApprovedBy ?? null; d.timeframe = e.timeframe ?? null;
     d.chargedBy = e.chargedBy ?? null; d.houseCompany = e.houseCompany ?? null;
     d.maintenanceCost = e.maintenanceCost ? Number(e.maintenanceCost) : null;
     d.materialCost = e.materialCost ? Number(e.materialCost) : null;

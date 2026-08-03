@@ -37,6 +37,27 @@ export class BookingTypeOrmRepository implements IBookingRepository {
     return entities.map(this.toDomain);
   }
 
+  async findActiveByResidentId(residentId: string): Promise<Booking | null> {
+    const entity = await this.repo.findOne({
+      where: { residentId, status: 'active', active: true },
+      relations: ['bed', 'bed.property'],
+    });
+    return entity ? this.toDomain(entity) : null;
+  }
+
+  async findOverlappingActive(bedId: string, startDate: Date, endDate: Date, excludeId?: string): Promise<Booking[]> {
+    const qb = this.repo.createQueryBuilder('b')
+      .where('b.bedId = :bedId', { bedId })
+      .andWhere('b.active = true')
+      .andWhere("b.status IN ('active', 'upcoming')")
+      .andWhere('b.checkInDate < :endDate', { endDate })
+      .andWhere('(COALESCE(b.checkOutDate, b.contractEndDate) > :startDate OR (b.checkOutDate IS NULL AND b.contractEndDate IS NULL))', { startDate });
+    if (excludeId) {
+      qb.andWhere('b.id != :excludeId', { excludeId });
+    }
+    return (await qb.getMany()).map(this.toDomain);
+  }
+
   async save(booking: Partial<Booking>): Promise<Booking> {
     const entity = this.repo.create(booking as DeepPartial<BookingOrmEntity>);
     const saved = await this.repo.save(entity);

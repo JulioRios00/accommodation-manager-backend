@@ -11,6 +11,7 @@ export interface TicketFilter {
 export interface IMaintenanceTicketRepository {
   findAll(filter?: TicketFilter): Promise<MaintenanceTicket[]>;
   findById(id: string): Promise<MaintenanceTicket | null>;
+  findQueue(): Promise<MaintenanceTicket[]>;
   getNextOrderNumber(): Promise<string>;
   save(ticket: Partial<MaintenanceTicket>): Promise<MaintenanceTicket>;
   delete(id: string): Promise<void>;

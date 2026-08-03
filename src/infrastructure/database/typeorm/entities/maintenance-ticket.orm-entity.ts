@@ -5,6 +5,9 @@ export class MaintenanceTicketOrmEntity {
   @PrimaryGeneratedColumn('uuid') id: string;
   @Column({ length: 20 }) orderNumber: string;
   @Column('uuid') propertyId: string;
+  @Column({ length: 30, nullable: true }) category: string;
+  @Column({ type: 'uuid', nullable: true }) bedId: string;
+  @Column({ type: 'uuid', nullable: true }) residentId: string;
   @Column({ type: 'uuid', nullable: true }) serviceProviderId: string;
   @Column({ length: 300 }) title: string;
   @Column({ type: 'text', nullable: true }) descriptionRequested: string;
@@ -18,6 +21,8 @@ export class MaintenanceTicketOrmEntity {
   @Column({ length: 50, nullable: true }) clientPhone: string;
   @Column({ length: 200, nullable: true }) approvedBy: string;
   @Column({ type: 'date', nullable: true }) approvalDate: Date;
+  @Column({ length: 200, nullable: true }) paymentApprovedBy: string;
+  @Column({ length: 50, nullable: true }) timeframe: string;
   @Column({ length: 200, nullable: true }) chargedBy: string;
   @Column({ length: 200, nullable: true }) houseCompany: string;
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true }) maintenanceCost: number;

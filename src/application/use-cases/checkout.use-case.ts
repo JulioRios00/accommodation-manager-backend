@@ -1,7 +1,22 @@
-import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { IBookingRepository, BOOKING_REPOSITORY } from '../../domain/booking/booking.repository';
-import { ICheckoutRecordRepository, CHECKOUT_RECORD_REPOSITORY } from '../../domain/checkout-record/checkout-record.repository';
-import { IDepositTransactionRepository, DEPOSIT_TRANSACTION_REPOSITORY } from '../../domain/deposit-transaction/deposit-transaction.repository';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import {
+  IBookingRepository,
+  BOOKING_REPOSITORY,
+} from '../../domain/booking/booking.repository';
+import {
+  ICheckoutRecordRepository,
+  CHECKOUT_RECORD_REPOSITORY,
+} from '../../domain/checkout-record/checkout-record.repository';
+import {
+  IDepositTransactionRepository,
+  DEPOSIT_TRANSACTION_REPOSITORY,
+} from '../../domain/deposit-transaction/deposit-transaction.repository';
+import { IBedRepository, BED_REPOSITORY } from '../../domain/bed/bed.repository';
 
 export interface CheckoutDto {
   bookingId: string;
@@ -28,17 +43,30 @@ export interface CheckoutDto {
 @Injectable()
 export class CheckoutUseCase {
   constructor(
-    @Inject(BOOKING_REPOSITORY) private readonly bookingRepo: IBookingRepository,
-    @Inject(CHECKOUT_RECORD_REPOSITORY) private readonly checkoutRepo: ICheckoutRecordRepository,
-    @Inject(DEPOSIT_TRANSACTION_REPOSITORY) private readonly depositRepo: IDepositTransactionRepository,
+    @Inject(BOOKING_REPOSITORY)
+    private readonly bookingRepo: IBookingRepository,
+    @Inject(CHECKOUT_RECORD_REPOSITORY)
+    private readonly checkoutRepo: ICheckoutRecordRepository,
+    @Inject(DEPOSIT_TRANSACTION_REPOSITORY)
+    private readonly depositRepo: IDepositTransactionRepository,
+    @Inject(BED_REPOSITORY)
+    private readonly bedRepo: IBedRepository,
   ) {}
 
   async execute(dto: CheckoutDto) {
     const booking = await this.bookingRepo.findById(dto.bookingId);
-    if (!booking) throw new NotFoundException(`Booking ${dto.bookingId} not found`);
-    if (booking.status === 'completed') throw new BadRequestException('Booking is already completed');
+    if (!booking)
+      throw new NotFoundException(`Booking ${dto.bookingId} not found`);
+    if (booking.status === 'completed')
+      throw new BadRequestException('Booking is already completed');
 
-    await this.bookingRepo.save({ ...booking, status: 'completed', checkOutDate: new Date(dto.checkoutDate) });
+    await this.bookingRepo.save({
+      ...booking,
+      status: 'completed',
+      checkOutDate: new Date(dto.checkoutDate),
+    });
+
+    await this.bedRepo.save({ id: booking.bedId, status: 'vacant' });
 
     const record = await this.checkoutRepo.save({
       bookingId: dto.bookingId,
