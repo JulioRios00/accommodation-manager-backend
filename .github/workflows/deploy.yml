@@ -1,0 +1,39 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      PM2_APP: ${{ secrets.EC2_PM2_APP || 'backend' }}
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: PM2_APP
+          script: |
+            set -e
+            cd ~/accommodation-manager-backend
+
+            echo "==> Pulling latest code"
+            git pull origin main
+
+            echo "==> Installing dependencies"
+            npm ci --omit=dev
+
+            echo "==> Building"
+            npm run build
+
+            echo "==> Restarting PM2 app: $PM2_APP"
+            pm2 restart "$PM2_APP" --update-env
+
+            echo "==> Done"
+            pm2 status
