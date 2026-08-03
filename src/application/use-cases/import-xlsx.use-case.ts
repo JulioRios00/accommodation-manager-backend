@@ -65,6 +65,7 @@ export class ImportXlsxUseCase {
         const checkOut = row.checkOutDate;
         const isCompleted = checkOut && checkOut < today;
 
+        const bookingStatus = isCompleted ? 'completed' : 'active';
         await this.bookingRepo.save({
           bedId: bed.id,
           residentId: resident.id,
@@ -75,9 +76,12 @@ export class ImportXlsxUseCase {
           rentAmount: row.rentAmount,
           isHeadResident: row.residentIsHead,
           isTemporary: false,
-          status: isCompleted ? 'completed' : 'active',
+          status: bookingStatus,
           comments: row.comments,
         });
+        if (bookingStatus === 'active') {
+          await this.bedRepo.save({ id: bed.id, status: 'allocated' });
+        }
       }
 
       // Create temporary/upcoming resident booking if present

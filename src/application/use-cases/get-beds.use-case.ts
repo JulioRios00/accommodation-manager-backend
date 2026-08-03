@@ -21,6 +21,7 @@ export class GetBedsUseCase {
 
     return beds.map((bed) => ({
       ...bed,
+      status: bookingByBed.has(bed.id) ? 'allocated' : 'vacant',
       activeBooking: bookingByBed.get(bed.id) ?? null,
     }));
   }
