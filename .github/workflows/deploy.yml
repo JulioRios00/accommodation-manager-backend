@@ -21,6 +21,7 @@ jobs:
           envs: PM2_APP
           script: |
             set -e
+            export NODE_ENV=production
             cd /home/ubuntu/app
 
             echo "==> Pulling latest code"
@@ -34,7 +35,7 @@ jobs:
 
             echo "==> Starting / restarting PM2 app: $PM2_APP"
             pm2 restart "$PM2_APP" --update-env \
-              || pm2 start dist/main.js --name "$PM2_APP"
+              || pm2 start ecosystem.config.js --env production
 
             echo "==> Done"
             pm2 status
