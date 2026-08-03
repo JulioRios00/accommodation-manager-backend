@@ -32,8 +32,9 @@ jobs:
             echo "==> Building"
             npm run build
 
-            echo "==> Restarting PM2 app: $PM2_APP"
-            pm2 restart "$PM2_APP" --update-env
+            echo "==> Starting / restarting PM2 app: $PM2_APP"
+            pm2 restart "$PM2_APP" --update-env \
+              || pm2 start dist/main.js --name "$PM2_APP"
 
             echo "==> Done"
             pm2 status
