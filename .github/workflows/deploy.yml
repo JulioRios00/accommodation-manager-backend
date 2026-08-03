@@ -25,7 +25,9 @@ jobs:
             cd /home/ubuntu/app
 
             echo "==> Pulling latest code"
-            git pull origin main
+            git fetch origin main
+            git clean -fd
+            git reset --hard origin/main
 
             echo "==> Installing dependencies"
             npm ci --omit=dev
