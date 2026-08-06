@@ -48,6 +48,9 @@ export interface SavePropertyDto {
   propertyType?: string | null;
   crn?: string | null;
   propertyEmail?: string | null;
+  paymentReference?: string | null;
+  propertySupplier?: string | null;
+  officeKeysComment?: string | null;
   landlordId?: string | null;
 }
 
@@ -98,6 +101,14 @@ export class SavePropertyUseCase {
   }
 
   private async validateUniqueness(dto: SavePropertyDto): Promise<void> {
+    // Duplicate code check
+    const byCode = await this.repo.findByCode(dto.code);
+    if (byCode && byCode.id !== dto.id) {
+      throw new BadRequestException(
+        `There is already another property with code "${dto.code}". Try another Property Code or edit the existing Property Profile for that code.`,
+      );
+    }
+
     if (dto.electricityMprn) {
       const conflict = await this.repo.findByMprn(dto.electricityMprn);
       if (conflict && conflict.id !== dto.id) {

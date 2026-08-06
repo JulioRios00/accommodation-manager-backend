@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'backend',
       script: 'dist/main.js',
-      env_production: {
+      env: {
         NODE_ENV: 'production',
       },
     },

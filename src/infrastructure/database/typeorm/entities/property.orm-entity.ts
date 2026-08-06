@@ -154,6 +154,17 @@ export class PropertyOrmEntity {
   @Column({ length: 200, nullable: true })
   propertyEmail: string;
 
+  // Payment details
+  @Column({ length: 100, nullable: true })
+  paymentReference: string;
+
+  @Column({ length: 200, nullable: true })
+  propertySupplier: string;
+
+  // Key inventory comment
+  @Column({ type: 'text', nullable: true })
+  officeKeysComment: string;
+
   // Relations
   @Column({ type: 'uuid', nullable: true })
   landlordId: string;

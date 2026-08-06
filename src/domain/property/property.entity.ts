@@ -60,6 +60,13 @@ export class Property {
   crn: string | null;
   propertyEmail: string | null;
 
+  // Payment
+  paymentReference: string | null;
+  propertySupplier: string | null;
+
+  // Key inventory comment
+  officeKeysComment: string | null;
+
   // Relations
   landlordId: string | null;
 

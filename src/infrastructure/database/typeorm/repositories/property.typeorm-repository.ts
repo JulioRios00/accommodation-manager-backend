@@ -104,6 +104,9 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
     p.propertyType = entity.propertyType ?? null;
     p.crn = entity.crn ?? null;
     p.propertyEmail = entity.propertyEmail ?? null;
+    p.paymentReference = entity.paymentReference ?? null;
+    p.propertySupplier = entity.propertySupplier ?? null;
+    p.officeKeysComment = entity.officeKeysComment ?? null;
     p.landlordId = entity.landlordId ?? null;
     p.active = entity.active;
     p.createdAt = entity.createdAt;
