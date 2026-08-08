@@ -45,7 +45,7 @@ export class MaintenanceTicketsController {
   }
 
   @Put(':id')
-  @Roles('sysadmin', 'manager', 'administrator')
+  @Roles('sysadmin', 'manager', 'administrator', 'maintenance')
   async update(@Param('id') id: string, @Body() dto: SaveMaintenanceTicketDto) {
     return this.saveTicket.execute({ ...dto, id });
   }
@@ -56,7 +56,7 @@ export class MaintenanceTicketsController {
   async remove(@Param('id') id: string) { await this.deleteTicket.execute(id); }
 
   @Post(':id/activity')
-  @Roles('sysadmin', 'manager', 'administrator')
+  @Roles('sysadmin', 'manager', 'administrator', 'maintenance')
   async addLog(@Param('id') ticketId: string, @Body() dto: AddTicketActivityDto, @Request() req: any) {
     return this.addActivity.execute({
       ...dto,
@@ -67,7 +67,7 @@ export class MaintenanceTicketsController {
   }
 
   @Post(':id/claim')
-  @Roles('sysadmin', 'manager', 'administrator')
+  @Roles('sysadmin', 'manager', 'administrator', 'maintenance')
   async claim(@Param('id') ticketId: string, @Request() req: any) {
     return this.claimTicket.execute({
       ticketId,
@@ -77,7 +77,7 @@ export class MaintenanceTicketsController {
   }
 
   @Post(':id/close')
-  @Roles('sysadmin', 'manager', 'administrator')
+  @Roles('sysadmin', 'manager', 'administrator', 'maintenance')
   async close(@Param('id') ticketId: string, @Body() body: { resolutionNotes?: string }, @Request() req: any) {
     return this.closeTicket.execute({
       ticketId,

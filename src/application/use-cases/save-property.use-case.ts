@@ -81,6 +81,7 @@ export class SavePropertyUseCase {
     if (result.eirCode != null) {
       result.eirCode = result.eirCode.trim().toUpperCase() || null;
     }
+    if (result.internetContractEndDate === '') result.internetContractEndDate = null;
     return result;
   }
 

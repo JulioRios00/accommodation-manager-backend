@@ -29,6 +29,9 @@ export class QueryFailedFilter implements ExceptionFilter {
     } else if (message.includes('violates foreign key')) {
       status = HttpStatus.BAD_REQUEST;
       clientMessage = detail ?? 'Referenced record does not exist.';
+    } else if (message.includes('invalid input syntax for type')) {
+      status = HttpStatus.BAD_REQUEST;
+      clientMessage = 'One or more fields contain an invalid value (e.g. a date field was left partially filled).';
     }
 
     response.status(status).json({ statusCode: status, message: clientMessage });

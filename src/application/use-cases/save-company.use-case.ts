@@ -4,6 +4,7 @@ import { ICompanyRepository, COMPANY_REPOSITORY } from '../../domain/company/com
 export interface SaveCompanyDto {
   id?: string;
   name: string;
+  bu?: string | null;
   address?: string | null;
   contactEmail?: string | null;
   phone?: string | null;

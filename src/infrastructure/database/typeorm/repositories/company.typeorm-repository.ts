@@ -29,7 +29,7 @@ export class CompanyTypeOrmRepository implements ICompanyRepository {
 
   private toDomain(e: CompanyOrmEntity): Company {
     const d = new Company();
-    d.id = e.id; d.name = e.name; d.address = e.address ?? null;
+    d.id = e.id; d.name = e.name; d.bu = e.bu ?? null; d.address = e.address ?? null;
     d.contactEmail = e.contactEmail ?? null; d.phone = e.phone ?? null;
     d.active = e.active; d.createdAt = e.createdAt; d.updatedAt = e.updatedAt;
     return d;

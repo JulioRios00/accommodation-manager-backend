@@ -46,7 +46,10 @@ export class MaintenanceTicketTypeOrmRepository implements IMaintenanceTicketRep
     const d = new MaintenanceTicket();
     d.id = e.id; d.orderNumber = e.orderNumber; d.propertyId = e.propertyId;
     d.category = (e.category as any) ?? null; d.bedId = e.bedId ?? null; d.residentId = e.residentId ?? null;
-    d.serviceProviderId = e.serviceProviderId ?? null; d.title = e.title;
+    d.serviceProviderId = e.serviceProviderId ?? null;
+    d.responsibleClerkUserId = e.responsibleClerkUserId ?? null;
+    d.responsibleClerkUserName = e.responsibleClerkUserName ?? null;
+    d.title = e.title;
     d.descriptionRequested = e.descriptionRequested ?? null;
     d.additionalDetails = e.additionalDetails ?? null; d.descriptionDone = e.descriptionDone ?? null;
     d.materials = e.materials ?? null; d.priority = e.priority ?? 0; d.urgency = e.urgency;

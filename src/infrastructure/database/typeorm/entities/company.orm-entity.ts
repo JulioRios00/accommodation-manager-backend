@@ -4,6 +4,7 @@ import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateCol
 export class CompanyOrmEntity {
   @PrimaryGeneratedColumn('uuid') id: string;
   @Column({ length: 200 }) name: string;
+  @Column({ length: 20, nullable: true }) bu: string;
   @Column({ type: 'text', nullable: true }) address: string;
   @Column({ length: 200, nullable: true }) contactEmail: string;
   @Column({ length: 50, nullable: true }) phone: string;

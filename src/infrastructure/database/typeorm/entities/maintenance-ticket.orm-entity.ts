@@ -9,6 +9,8 @@ export class MaintenanceTicketOrmEntity {
   @Column({ type: 'uuid', nullable: true }) bedId: string;
   @Column({ type: 'uuid', nullable: true }) residentId: string;
   @Column({ type: 'uuid', nullable: true }) serviceProviderId: string;
+  @Column({ length: 100, nullable: true }) responsibleClerkUserId: string;
+  @Column({ length: 200, nullable: true }) responsibleClerkUserName: string;
   @Column({ length: 300 }) title: string;
   @Column({ type: 'text', nullable: true }) descriptionRequested: string;
   @Column({ type: 'text', nullable: true }) additionalDetails: string;
