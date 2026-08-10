@@ -24,7 +24,7 @@ export class BookingTypeOrmRepository implements IBookingRepository {
   async findById(id: string): Promise<Booking | null> {
     const entity = await this.repo.findOne({
       where: { id, active: true },
-      relations: ['bed', 'resident'],
+      relations: ['bed', 'bed.property', 'resident'],
     });
     return entity ? this.toDomain(entity) : null;
   }
@@ -88,6 +88,24 @@ export class BookingTypeOrmRepository implements IBookingRepository {
     b.comments = entity.comments;
     b.createdAt = entity.createdAt;
     b.updatedAt = entity.updatedAt;
+    b.bed = entity.bed
+      ? {
+          id: entity.bed.id,
+          bedNumber: entity.bed.bedNumber,
+          name: entity.bed.name ?? null,
+          bedroomType: entity.bed.bedroomType,
+          propertyId: entity.bed.propertyId,
+          propertyCode: entity.bed.property?.code ?? null,
+        }
+      : null;
+    b.resident = entity.resident
+      ? {
+          id: entity.resident.id,
+          fullName: entity.resident.fullName,
+          email: entity.resident.email ?? null,
+          telephone: entity.resident.telephone ?? null,
+        }
+      : null;
     return b;
   }
 }

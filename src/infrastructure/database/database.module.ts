@@ -21,6 +21,7 @@ import { CompanyOrmEntity } from './typeorm/entities/company.orm-entity';
 import { AuditLogOrmEntity } from './typeorm/entities/audit-log.orm-entity';
 import { PropertySpaceOrmEntity } from './typeorm/entities/property-space.orm-entity';
 import { SpaceItemOrmEntity } from './typeorm/entities/space-item.orm-entity';
+import { RolePermissionOrmEntity } from './typeorm/entities/role-permission.orm-entity';
 
 import { PropertyTypeOrmRepository } from './typeorm/repositories/property.typeorm-repository';
 import { BedTypeOrmRepository } from './typeorm/repositories/bed.typeorm-repository';
@@ -40,6 +41,7 @@ import { DepositTransactionTypeOrmRepository } from './typeorm/repositories/depo
 import { CompanyTypeOrmRepository } from './typeorm/repositories/company.typeorm-repository';
 import { AuditLogTypeOrmRepository } from './typeorm/repositories/audit-log.typeorm-repository';
 import { PropertySpaceTypeOrmRepository, SpaceItemTypeOrmRepository } from './typeorm/repositories/property-space.typeorm-repository';
+import { RolePermissionTypeOrmRepository } from './typeorm/repositories/role-permission.typeorm-repository';
 
 import { PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
 import { BED_REPOSITORY } from '../../domain/bed/bed.repository';
@@ -59,6 +61,7 @@ import { DEPOSIT_TRANSACTION_REPOSITORY } from '../../domain/deposit-transaction
 import { COMPANY_REPOSITORY } from '../../domain/company/company.repository';
 import { AUDIT_LOG_REPOSITORY } from '../../domain/audit-log/audit-log.repository';
 import { PROPERTY_SPACE_REPOSITORY, SPACE_ITEM_REPOSITORY } from '../../domain/property-space/property-space.repository';
+import { ROLE_PERMISSION_REPOSITORY } from '../../domain/role-permission/role-permission.repository';
 
 const ALL_ENTITIES = [
   PropertyOrmEntity, BedOrmEntity, BedroomOrmEntity, ResidentOrmEntity, BookingOrmEntity,
@@ -66,7 +69,7 @@ const ALL_ENTITIES = [
   MaintenanceTicketOrmEntity, TicketActivityLogOrmEntity, KeyLogOrmEntity,
   CheckoutRecordOrmEntity, RentPaymentOrmEntity, RentPaymentInstallmentOrmEntity,
   LandlordPaymentOrmEntity, DepositTransactionOrmEntity, CompanyOrmEntity, AuditLogOrmEntity,
-  PropertySpaceOrmEntity, SpaceItemOrmEntity,
+  PropertySpaceOrmEntity, SpaceItemOrmEntity, RolePermissionOrmEntity,
 ];
 
 @Module({
@@ -115,6 +118,7 @@ const ALL_ENTITIES = [
     { provide: AUDIT_LOG_REPOSITORY, useClass: AuditLogTypeOrmRepository },
     { provide: PROPERTY_SPACE_REPOSITORY, useClass: PropertySpaceTypeOrmRepository },
     { provide: SPACE_ITEM_REPOSITORY, useClass: SpaceItemTypeOrmRepository },
+    { provide: ROLE_PERMISSION_REPOSITORY, useClass: RolePermissionTypeOrmRepository },
   ],
   exports: [
     PROPERTY_REPOSITORY, BED_REPOSITORY, BEDROOM_REPOSITORY, RESIDENT_REPOSITORY, BOOKING_REPOSITORY,
@@ -122,7 +126,7 @@ const ALL_ENTITIES = [
     MAINTENANCE_TICKET_REPOSITORY, TICKET_ACTIVITY_LOG_REPOSITORY, KEY_LOG_REPOSITORY,
     CHECKOUT_RECORD_REPOSITORY, RENT_PAYMENT_REPOSITORY, RENT_PAYMENT_INSTALLMENT_REPOSITORY,
     LANDLORD_PAYMENT_REPOSITORY, DEPOSIT_TRANSACTION_REPOSITORY, COMPANY_REPOSITORY, AUDIT_LOG_REPOSITORY,
-    PROPERTY_SPACE_REPOSITORY, SPACE_ITEM_REPOSITORY,
+    PROPERTY_SPACE_REPOSITORY, SPACE_ITEM_REPOSITORY, ROLE_PERMISSION_REPOSITORY,
   ],
 })
 export class DatabaseModule {}
