@@ -58,7 +58,7 @@ export class PropertyOrmEntity {
   @Column({ length: 100, nullable: true })
   electricityAccountNumber: string;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'text', nullable: true })
   electricityKeypadCode: string;
 
   // Gas
