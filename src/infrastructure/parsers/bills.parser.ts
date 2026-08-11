@@ -67,6 +67,17 @@ function toDate(v: any): Date | null {
   return null;
 }
 
+// Some sheets have their used range start at column B or later (column A left blank),
+// which xlsx does not pad for — sheet_to_json would then return column B's values at index 0,
+// shifting every hardcoded column index below. Force the range to always start at column A.
+function sheetToRows(sheet: XLSX.WorkSheet): any[][] {
+  const ref = sheet['!ref'];
+  if (!ref) return [];
+  const range = XLSX.utils.decode_range(ref);
+  range.s.c = 0;
+  return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, range });
+}
+
 export function parseBills(buffer: Buffer): ParsedBills {
   const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
   const result: ParsedBills = { electricityGas: [], waste: [], internet: [] };
@@ -74,7 +85,7 @@ export function parseBills(buffer: Buffer): ParsedBills {
   // --- Electricity + Gas sheet (first sheet, "Mach Educational" or similar) ---
   const elecSheet = wb.Sheets[wb.SheetNames[0]];
   if (elecSheet) {
-    const rows: any[][] = XLSX.utils.sheet_to_json(elecSheet, { header: 1, defval: null });
+    const rows: any[][] = sheetToRows(elecSheet);
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       if (!r || !r[0] || typeof r[0] !== 'string' || r[0].trim().length < 5) continue;
@@ -98,7 +109,7 @@ export function parseBills(buffer: Buffer): ParsedBills {
   // --- Waste sheet (second sheet) ---
   const wasteSheet = wb.Sheets[wb.SheetNames[1]];
   if (wasteSheet) {
-    const rows: any[][] = XLSX.utils.sheet_to_json(wasteSheet, { header: 1, defval: null });
+    const rows: any[][] = sheetToRows(wasteSheet);
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       const code = toStr(r[5]);
@@ -120,7 +131,7 @@ export function parseBills(buffer: Buffer): ParsedBills {
   // --- Internet sheet (third sheet) ---
   const netSheet = wb.Sheets[wb.SheetNames[2]];
   if (netSheet) {
-    const rows: any[][] = XLSX.utils.sheet_to_json(netSheet, { header: 1, defval: null });
+    const rows: any[][] = sheetToRows(netSheet);
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       const code = toStr(r[4]);
