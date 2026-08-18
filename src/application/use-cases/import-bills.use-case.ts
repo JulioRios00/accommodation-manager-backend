@@ -2,10 +2,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import { parseBills } from '../../infrastructure/parsers/bills.parser';
 import { IPropertyRepository, PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
 import { Property } from '../../domain/property/property.entity';
+import { IServiceProviderRepository, SERVICE_PROVIDER_REPOSITORY } from '../../domain/service-provider/service-provider.repository';
 
 @Injectable()
 export class ImportBillsUseCase {
-  constructor(@Inject(PROPERTY_REPOSITORY) private readonly repo: IPropertyRepository) {}
+  constructor(
+    @Inject(PROPERTY_REPOSITORY) private readonly repo: IPropertyRepository,
+    @Inject(SERVICE_PROVIDER_REPOSITORY) private readonly serviceProviderRepo: IServiceProviderRepository,
+  ) {}
 
   async execute(buffer: Buffer): Promise<{ updated: number; skipped: number; gprnConflicts: number }> {
     const parsed = parseBills(buffer);
@@ -13,12 +17,17 @@ export class ImportBillsUseCase {
     const byCode = new Map(all.map(p => [p.code.toLowerCase(), p]));
     const byAddress = new Map(all.map(p => [p.fullAddress?.toLowerCase() ?? '', p]));
 
+    const existingProviders = await this.serviceProviderRepo.findAll();
+    const providerCache = new Map(existingProviders.map(sp => [sp.name.trim().toLowerCase(), sp]));
+
     let updated = 0;
     let skipped = 0;
     let gprnConflicts = 0;
 
     // Electricity + Gas (matched by address)
     for (const row of parsed.electricityGas) {
+      await this.ensureServiceProvider(row.electricitySupplier, 'Electricity', providerCache);
+      await this.ensureServiceProvider(row.gasSupplier, 'Gas', providerCache);
       const prop = this.findByAddress(row.propertyAddress, byAddress, all);
       if (!prop) { skipped++; continue; }
       // Two properties cannot share the same GPRN, except "N/A" (used for properties
@@ -52,6 +61,7 @@ export class ImportBillsUseCase {
 
     // Waste (matched by property code)
     for (const row of parsed.waste) {
+      await this.ensureServiceProvider(row.wasteSupplier, 'Waste', providerCache);
       const prop = byCode.get(row.propertyCode.toLowerCase());
       if (!prop) { skipped++; continue; }
       Object.assign(prop, {
@@ -70,6 +80,7 @@ export class ImportBillsUseCase {
 
     // Internet (matched by property code)
     for (const row of parsed.internet) {
+      await this.ensureServiceProvider(row.internetSupplier, 'Internet', providerCache);
       const prop = byCode.get(row.propertyCode.toLowerCase());
       if (!prop) { skipped++; continue; }
       Object.assign(prop, {
@@ -90,6 +101,19 @@ export class ImportBillsUseCase {
     }
 
     return { updated, skipped, gprnConflicts };
+  }
+
+  private async ensureServiceProvider(
+    name: string | null,
+    specialty: string,
+    cache: Map<string, { id: string; name: string }>,
+  ): Promise<void> {
+    const trimmed = name?.trim();
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (cache.has(key)) return;
+    const created = await this.serviceProviderRepo.save({ name: trimmed, specialty });
+    cache.set(key, created);
   }
 
   private isDuplicateGprn(gprn: string, propertyId: string, all: Property[]): boolean {

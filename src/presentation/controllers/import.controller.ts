@@ -31,7 +31,10 @@ export class ImportController {
   async importAccommodation(@UploadedFile() file: Express.Multer.File) {
     fileGuard(file);
     const result = await this.importXlsxUseCase.execute(file.buffer);
-    return { message: `Imported ${result.imported} beds`, ...result };
+    return {
+      message: `Imported ${result.imported} beds, ${result.historicalImported} historical (checked-out) bookings`,
+      ...result,
+    };
   }
 
   @Post('bills')
