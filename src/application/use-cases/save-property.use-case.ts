@@ -116,7 +116,7 @@ export class SavePropertyUseCase {
         throw new BadRequestException(`MPRN ${dto.electricityMprn} is already in use by property ${conflict.code}`);
       }
     }
-    if (dto.gasGprn) {
+    if (dto.gasGprn && dto.gasGprn.trim().toUpperCase() !== 'N/A') {
       const conflict = await this.repo.findByGprn(dto.gasGprn);
       if (conflict && conflict.id !== dto.id) {
         throw new BadRequestException(`GPRN ${dto.gasGprn} is already in use by property ${conflict.code}`);

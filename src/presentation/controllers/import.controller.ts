@@ -40,7 +40,8 @@ export class ImportController {
   async importBills(@UploadedFile() file: Express.Multer.File) {
     fileGuard(file);
     const result = await this.importBillsUseCase.execute(file.buffer);
-    return { message: `Updated ${result.updated} property utility records (${result.skipped} skipped)`, ...result };
+    const gprnNote = result.gprnConflicts ? `, ${result.gprnConflicts} GPRN conflicts kept previous value` : '';
+    return { message: `Updated ${result.updated} property utility records (${result.skipped} skipped${gprnNote})`, ...result };
   }
 
   @Post('maintenance')
