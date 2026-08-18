@@ -1,17 +1,20 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { parseBills } from '../../infrastructure/parsers/bills.parser';
 import { IPropertyRepository, PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
 import { Property } from '../../domain/property/property.entity';
 import { IServiceProviderRepository, SERVICE_PROVIDER_REPOSITORY } from '../../domain/service-provider/service-provider.repository';
+import { ImportSkipReason } from './import-deposits.use-case';
 
 @Injectable()
 export class ImportBillsUseCase {
+  private readonly logger = new Logger(ImportBillsUseCase.name);
+
   constructor(
     @Inject(PROPERTY_REPOSITORY) private readonly repo: IPropertyRepository,
     @Inject(SERVICE_PROVIDER_REPOSITORY) private readonly serviceProviderRepo: IServiceProviderRepository,
   ) {}
 
-  async execute(buffer: Buffer): Promise<{ updated: number; skipped: number; gprnConflicts: number }> {
+  async execute(buffer: Buffer): Promise<{ updated: number; skipped: number; gprnConflicts: number; skipReasons: ImportSkipReason[] }> {
     const parsed = parseBills(buffer);
     const all = await this.repo.findAll();
     const byCode = new Map(all.map(p => [p.code.toLowerCase(), p]));
@@ -23,13 +26,19 @@ export class ImportBillsUseCase {
     let updated = 0;
     let skipped = 0;
     let gprnConflicts = 0;
+    const skipReasons: ImportSkipReason[] = [];
+    const skip = (identifier: string, reason: string) => {
+      skipped++;
+      skipReasons.push({ identifier, reason });
+      this.logger.warn(`[import-bills] skip ${identifier}: ${reason}`);
+    };
 
     // Electricity + Gas (matched by address)
     for (const row of parsed.electricityGas) {
       await this.ensureServiceProvider(row.electricitySupplier, 'Electricity', providerCache);
       await this.ensureServiceProvider(row.gasSupplier, 'Gas', providerCache);
       const prop = this.findByAddress(row.propertyAddress, byAddress, all);
-      if (!prop) { skipped++; continue; }
+      if (!prop) { skip(row.propertyAddress, 'No property matched this address'); continue; }
       // Two properties cannot share the same GPRN, except "N/A" (used for properties
       // without gas). If the row's GPRN is already in use by another property, keep
       // the property's existing GPRN instead of overwriting it.
@@ -63,7 +72,7 @@ export class ImportBillsUseCase {
     for (const row of parsed.waste) {
       await this.ensureServiceProvider(row.wasteSupplier, 'Waste', providerCache);
       const prop = byCode.get(row.propertyCode.toLowerCase());
-      if (!prop) { skipped++; continue; }
+      if (!prop) { skip(row.propertyCode, `Property "${row.propertyCode}" not found`); continue; }
       Object.assign(prop, {
         wasteSupplier: row.wasteSupplier ?? prop.wasteSupplier,
         wasteAccountNumber: row.wasteAccountNumber ?? prop.wasteAccountNumber,
@@ -82,7 +91,7 @@ export class ImportBillsUseCase {
     for (const row of parsed.internet) {
       await this.ensureServiceProvider(row.internetSupplier, 'Internet', providerCache);
       const prop = byCode.get(row.propertyCode.toLowerCase());
-      if (!prop) { skipped++; continue; }
+      if (!prop) { skip(row.propertyCode, `Property "${row.propertyCode}" not found`); continue; }
       Object.assign(prop, {
         internetSupplier: row.internetSupplier ?? prop.internetSupplier,
         internetAccountNumber: row.internetAccountNumber ?? prop.internetAccountNumber,
@@ -100,7 +109,7 @@ export class ImportBillsUseCase {
       updated++;
     }
 
-    return { updated, skipped, gprnConflicts };
+    return { updated, skipped, gprnConflicts, skipReasons };
   }
 
   private async ensureServiceProvider(

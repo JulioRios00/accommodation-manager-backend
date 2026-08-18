@@ -1,12 +1,19 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { parseDeposits } from '../../infrastructure/parsers/deposits.parser';
 import { IDepositTransactionRepository, DEPOSIT_TRANSACTION_REPOSITORY } from '../../domain/deposit-transaction/deposit-transaction.repository';
 import { IPropertyRepository, PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
 import { IBedRepository, BED_REPOSITORY } from '../../domain/bed/bed.repository';
 import { IResidentRepository, RESIDENT_REPOSITORY } from '../../domain/resident/resident.repository';
 
+export interface ImportSkipReason {
+  identifier: string;
+  reason: string;
+}
+
 @Injectable()
 export class ImportDepositsUseCase {
+  private readonly logger = new Logger(ImportDepositsUseCase.name);
+
   constructor(
     @Inject(DEPOSIT_TRANSACTION_REPOSITORY) private readonly txRepo: IDepositTransactionRepository,
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepo: IPropertyRepository,
@@ -14,7 +21,7 @@ export class ImportDepositsUseCase {
     @Inject(RESIDENT_REPOSITORY) private readonly residentRepo: IResidentRepository,
   ) {}
 
-  async execute(buffer: Buffer): Promise<{ imported: number; skipped: number }> {
+  async execute(buffer: Buffer): Promise<{ imported: number; skipped: number; skipReasons: ImportSkipReason[] }> {
     const rows = parseDeposits(buffer);
     const properties = await this.propertyRepo.findAll();
     const byCode = new Map(properties.map(p => [p.code.toLowerCase(), p]));
@@ -29,13 +36,20 @@ export class ImportDepositsUseCase {
 
     let imported = 0;
     let skipped = 0;
+    const skipReasons: ImportSkipReason[] = [];
+    const skip = (identifier: string, reason: string) => {
+      skipped++;
+      skipReasons.push({ identifier, reason });
+      this.logger.warn(`[import-deposits] skip ${identifier}: ${reason}`);
+    };
 
     for (const row of rows) {
+      const identifier = `${row.propertyCode} / ${row.residentName}`;
       const property = byCode.get(row.propertyCode.toLowerCase());
-      if (!property) { skipped++; continue; }
+      if (!property) { skip(identifier, `Property "${row.propertyCode}" not found`); continue; }
 
       const key = `${property.id}|${row.residentName.toLowerCase()}|${row.transactionType}|${String(row.depositAmount)}`;
-      if (existingKeys.has(key)) { skipped++; continue; }
+      if (existingKeys.has(key)) { skip(identifier, 'Duplicate transaction (already imported)'); continue; }
 
       // Look up bed if bed number provided
       let bedId: string | null = null;
@@ -70,6 +84,6 @@ export class ImportDepositsUseCase {
       imported++;
     }
 
-    return { imported, skipped };
+    return { imported, skipped, skipReasons };
   }
 }

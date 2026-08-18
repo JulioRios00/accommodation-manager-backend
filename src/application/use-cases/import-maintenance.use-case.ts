@@ -1,16 +1,19 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { parseMaintenance } from '../../infrastructure/parsers/maintenance.parser';
 import { IMaintenanceTicketRepository, MAINTENANCE_TICKET_REPOSITORY } from '../../domain/maintenance-ticket/maintenance-ticket.repository';
 import { IPropertyRepository, PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
+import { ImportSkipReason } from './import-deposits.use-case';
 
 @Injectable()
 export class ImportMaintenanceUseCase {
+  private readonly logger = new Logger(ImportMaintenanceUseCase.name);
+
   constructor(
     @Inject(MAINTENANCE_TICKET_REPOSITORY) private readonly ticketRepo: IMaintenanceTicketRepository,
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepo: IPropertyRepository,
   ) {}
 
-  async execute(buffer: Buffer): Promise<{ imported: number; skipped: number }> {
+  async execute(buffer: Buffer): Promise<{ imported: number; skipped: number; skipReasons: ImportSkipReason[] }> {
     const rows = parseMaintenance(buffer);
     const properties = await this.propertyRepo.findAll();
     const byCode = new Map(properties.map(p => [p.code.toLowerCase(), p]));
@@ -21,10 +24,18 @@ export class ImportMaintenanceUseCase {
 
     let imported = 0;
     let skipped = 0;
+    const skipReasons: ImportSkipReason[] = [];
 
     for (const row of rows) {
+      const identifier = `${row.propertyCode} / ${row.orderNumber}`;
       const property = byCode.get(row.propertyCode.toLowerCase());
-      if (!property) { skipped++; continue; }
+      if (!property) {
+        skipped++;
+        const reason = `Property "${row.propertyCode}" not found`;
+        skipReasons.push({ identifier, reason });
+        this.logger.warn(`[import-maintenance] skip ${identifier}: ${reason}`);
+        continue;
+      }
 
       const existingTicket = byOrderNumber.get(row.orderNumber);
 
@@ -65,7 +76,7 @@ export class ImportMaintenanceUseCase {
       imported++;
     }
 
-    return { imported, skipped };
+    return { imported, skipped, skipReasons };
   }
 
   private normaliseStatus(raw: string): string {
