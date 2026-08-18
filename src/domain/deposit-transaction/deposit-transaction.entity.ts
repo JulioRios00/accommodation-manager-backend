@@ -1,7 +1,7 @@
 export class DepositTransaction {
   id: string;
   type: string;
-  residentId: string;
+  residentId: string | null;
   bookingId: string | null;
   propertyId: string;
   bedId: string | null;

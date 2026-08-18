@@ -43,7 +43,7 @@ export class ImportLandlordPaymentsUseCase {
 
       await this.paymentRepo.save({
         propertyId: property.id,
-        landlordId: landlord?.id ?? '',
+        landlordId: landlord?.id ?? null,
         month: row.month,
         amountDue: row.amountDue,
         amountPaid: row.status === 'paid' ? row.amountDue : 0,

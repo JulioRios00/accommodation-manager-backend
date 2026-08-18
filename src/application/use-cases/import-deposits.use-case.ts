@@ -49,7 +49,7 @@ export class ImportDepositsUseCase {
 
       await this.txRepo.save({
         type: row.transactionType,
-        residentId: resident?.id ?? '',
+        residentId: resident?.id ?? null,
         propertyId: property.id,
         bedId,
         residentName: row.residentName,

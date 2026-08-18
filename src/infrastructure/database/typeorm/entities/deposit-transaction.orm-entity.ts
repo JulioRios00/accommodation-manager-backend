@@ -4,7 +4,7 @@ import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateCol
 export class DepositTransactionOrmEntity {
   @PrimaryGeneratedColumn('uuid') id: string;
   @Column({ length: 20 }) type: string;
-  @Column('uuid') residentId: string;
+  @Column({ type: 'uuid', nullable: true }) residentId: string;
   @Column({ type: 'uuid', nullable: true }) bookingId: string;
   @Column('uuid') propertyId: string;
   @Column({ type: 'uuid', nullable: true }) bedId: string;

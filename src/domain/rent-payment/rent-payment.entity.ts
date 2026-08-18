@@ -10,7 +10,7 @@ export class RentPaymentInstallment {
 export class RentPayment {
   id: string;
   residentId: string;
-  bookingId: string;
+  bookingId: string | null;
   propertyId: string;
   month: string;
   paymentDueDay: number | null;

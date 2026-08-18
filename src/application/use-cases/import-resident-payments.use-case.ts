@@ -47,7 +47,7 @@ export class ImportResidentPaymentsUseCase {
 
       await this.paymentRepo.save({
         residentId: resident.id,
-        bookingId: booking?.id ?? '',
+        bookingId: booking?.id ?? null,
         propertyId: property.id,
         month: row.month,
         paymentDueDay: row.paymentDueDay,

@@ -1,7 +1,7 @@
 export class LandlordPayment {
   id: string;
   propertyId: string;
-  landlordId: string;
+  landlordId: string | null;
   month: string;
   amountDue: number;
   amountPaid: number;

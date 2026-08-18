@@ -4,7 +4,7 @@ import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateCol
 export class RentPaymentOrmEntity {
   @PrimaryGeneratedColumn('uuid') id: string;
   @Column('uuid') residentId: string;
-  @Column('uuid') bookingId: string;
+  @Column({ type: 'uuid', nullable: true }) bookingId: string;
   @Column('uuid') propertyId: string;
   @Column({ length: 7 }) month: string;
   @Column({ type: 'int', nullable: true }) paymentDueDay: number;
