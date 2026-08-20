@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query } from
 import { GetLandlordPaymentsUseCase } from '../../application/use-cases/get-landlord-payments.use-case';
 import { SaveLandlordPaymentUseCase, SaveLandlordPaymentDto } from '../../application/use-cases/save-landlord-payment.use-case';
 import { DeleteLandlordPaymentUseCase } from '../../application/use-cases/delete-landlord-payment.use-case';
+import { GenerateUpcomingLandlordPaymentsUseCase } from '../../application/use-cases/generate-upcoming-landlord-payments.use-case';
 import { Roles } from '../decorators/roles.decorator';
 
 @Controller('landlord-payments')
@@ -10,6 +11,7 @@ export class LandlordPaymentsController {
     private readonly getLandlordPayments: GetLandlordPaymentsUseCase,
     private readonly saveLandlordPayment: SaveLandlordPaymentUseCase,
     private readonly deleteLandlordPayment: DeleteLandlordPaymentUseCase,
+    private readonly generateUpcoming: GenerateUpcomingLandlordPaymentsUseCase,
   ) {}
 
   @Get()
@@ -35,4 +37,8 @@ export class LandlordPaymentsController {
   @HttpCode(204)
   @Roles('sysadmin', 'manager')
   async remove(@Param('id') id: string) { await this.deleteLandlordPayment.execute(id); }
+
+  @Post('generate-upcoming')
+  @Roles('sysadmin', 'manager')
+  async generateUpcomingNow() { return this.generateUpcoming.execute(); }
 }

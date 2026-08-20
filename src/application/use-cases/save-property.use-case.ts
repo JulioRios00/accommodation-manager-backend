@@ -51,6 +51,7 @@ export interface SavePropertyDto {
   paymentReference?: string | null;
   propertySupplier?: string | null;
   paymentNotes?: string | null;
+  landlordPaymentDueDay?: number | null;
   officeKeysComment?: string | null;
   landlordId?: string | null;
 }

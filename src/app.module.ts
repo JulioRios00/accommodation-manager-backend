@@ -4,6 +4,7 @@ import { MetricsMiddleware } from './presentation/middleware/metrics.middleware'
 import { ClerkAuthGuard } from './presentation/guards/clerk-auth.guard';
 import { RolesGuard } from './presentation/guards/roles.guard';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TerminusModule } from '@nestjs/terminus';
 import { LoggerModule } from 'nestjs-pino';
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
@@ -97,6 +98,9 @@ import { DeleteSpaceItemUseCase } from './application/use-cases/delete-space-ite
 import { PropertySpacesController } from './presentation/controllers/property-spaces.controller';
 import { GetRolePermissionsUseCase } from './application/use-cases/get-role-permissions.use-case';
 import { SaveRolePermissionsUseCase } from './application/use-cases/save-role-permissions.use-case';
+import { GenerateUpcomingRentPaymentsUseCase } from './application/use-cases/generate-upcoming-rent-payments.use-case';
+import { GenerateUpcomingLandlordPaymentsUseCase } from './application/use-cases/generate-upcoming-landlord-payments.use-case';
+import { PaymentGenerationCron } from './application/services/payment-generation.cron';
 
 @Module({
   imports: [
@@ -113,6 +117,7 @@ import { SaveRolePermissionsUseCase } from './application/use-cases/save-role-pe
     }),
     DatabaseModule,
     TerminusModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [
     ImportController, DashboardController, PropertiesController, BedsController,
@@ -147,6 +152,7 @@ import { SaveRolePermissionsUseCase } from './application/use-cases/save-role-pe
     GetPropertySpacesUseCase, SavePropertySpaceUseCase, DeletePropertySpaceUseCase,
     SaveSpaceItemUseCase, DeleteSpaceItemUseCase,
     GetRolePermissionsUseCase, SaveRolePermissionsUseCase,
+    GenerateUpcomingRentPaymentsUseCase, GenerateUpcomingLandlordPaymentsUseCase, PaymentGenerationCron,
   ],
 })
 export class AppModule implements NestModule {

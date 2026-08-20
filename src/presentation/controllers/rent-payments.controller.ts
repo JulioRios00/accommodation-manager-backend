@@ -3,6 +3,7 @@ import { GetRentPaymentsUseCase } from '../../application/use-cases/get-rent-pay
 import { SaveRentPaymentUseCase, SaveRentPaymentDto } from '../../application/use-cases/save-rent-payment.use-case';
 import { DeleteRentPaymentUseCase } from '../../application/use-cases/delete-rent-payment.use-case';
 import { AddRentInstallmentUseCase, AddRentInstallmentDto } from '../../application/use-cases/add-rent-installment.use-case';
+import { GenerateUpcomingRentPaymentsUseCase } from '../../application/use-cases/generate-upcoming-rent-payments.use-case';
 import { Roles } from '../decorators/roles.decorator';
 
 @Controller('rent-payments')
@@ -12,6 +13,7 @@ export class RentPaymentsController {
     private readonly saveRentPayment: SaveRentPaymentUseCase,
     private readonly deleteRentPayment: DeleteRentPaymentUseCase,
     private readonly addInstallment: AddRentInstallmentUseCase,
+    private readonly generateUpcoming: GenerateUpcomingRentPaymentsUseCase,
   ) {}
 
   @Get()
@@ -43,4 +45,8 @@ export class RentPaymentsController {
   async addPayment(@Param('id') rentPaymentId: string, @Body() dto: AddRentInstallmentDto) {
     return this.addInstallment.execute({ ...dto, rentPaymentId });
   }
+
+  @Post('generate-upcoming')
+  @Roles('sysadmin', 'manager')
+  async generateUpcomingNow() { return this.generateUpcoming.execute(); }
 }

@@ -64,6 +64,7 @@ export class Property {
   paymentReference: string | null;
   propertySupplier: string | null;
   paymentNotes: string | null;
+  landlordPaymentDueDay: number | null;
 
   // Key inventory comment
   officeKeysComment: string | null;

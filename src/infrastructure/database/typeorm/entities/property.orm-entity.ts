@@ -164,6 +164,9 @@ export class PropertyOrmEntity {
   @Column({ type: 'text', nullable: true })
   paymentNotes: string;
 
+  @Column({ type: 'int', nullable: true })
+  landlordPaymentDueDay: number;
+
   // Key inventory comment
   @Column({ type: 'text', nullable: true })
   officeKeysComment: string;
