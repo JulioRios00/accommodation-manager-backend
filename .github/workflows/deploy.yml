@@ -26,11 +26,11 @@ jobs:
 
             echo "==> Pulling latest code"
             git fetch origin main
-            git clean -fd
+            git clean -fd -e node_modules
             git reset --hard origin/main
 
             echo "==> Installing dependencies"
-            npm ci --omit=dev
+            npm install --omit=dev --prefer-offline --no-audit --no-fund --maxsockets=3
 
             echo "==> Building"
             npm run build
