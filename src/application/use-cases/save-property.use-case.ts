@@ -73,6 +73,13 @@ export class SavePropertyUseCase {
     await this.validateUniqueness(normalized);
     await this.validateLandlord(normalized);
     if (normalized.id) return this.repo.save(normalized as any);
+
+    // A soft-deleted property can leave a row behind with this code — reactivate it
+    // instead of inserting a fresh row, which would hit the unique constraint on `code`.
+    const deletedMatch = await this.repo.findByCodeAnyStatus(normalized.code);
+    if (deletedMatch && !deletedMatch.active) {
+      return this.repo.save({ ...normalized, id: deletedMatch.id, active: true } as any);
+    }
     return this.repo.save({ ...normalized, active: true } as any);
   }
 

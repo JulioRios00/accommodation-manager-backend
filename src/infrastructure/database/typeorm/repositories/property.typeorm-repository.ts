@@ -50,12 +50,19 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
   async upsertByCode(property: Partial<Property>): Promise<Property> {
     let entity = await this.repo.findOne({ where: { code: property.code } });
     if (entity) {
-      Object.assign(entity, property);
+      // A previously soft-deleted property (active: false) can share this code — reactivate it
+      // instead of leaving it hidden while the import "succeeds" silently against a ghost row.
+      Object.assign(entity, property, { active: true });
     } else {
-      entity = this.repo.create(property as DeepPartial<PropertyOrmEntity>);
+      entity = this.repo.create({ ...property, active: true } as DeepPartial<PropertyOrmEntity>);
     }
     const saved = await this.repo.save(entity);
     return this.toDomain(saved);
+  }
+
+  async findByCodeAnyStatus(code: string): Promise<Property | null> {
+    const entity = await this.repo.findOne({ where: { code } });
+    return entity ? this.toDomain(entity) : null;
   }
 
   private toDomain(entity: PropertyOrmEntity): Property {

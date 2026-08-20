@@ -47,9 +47,11 @@ export class BedTypeOrmRepository implements IBedRepository {
       where: { propertyId: bed.propertyId, bedNumber: bed.bedNumber },
     });
     if (entity) {
-      Object.assign(entity, bed);
+      // Mirrors PropertyTypeOrmRepository.upsertByCode: reactivate a soft-deleted bed
+      // instead of leaving it hidden behind an updated-but-inactive row.
+      Object.assign(entity, bed, { active: true });
     } else {
-      entity = this.repo.create(bed as DeepPartial<BedOrmEntity>);
+      entity = this.repo.create({ ...bed, active: true } as DeepPartial<BedOrmEntity>);
     }
     const saved = await this.repo.save(entity);
     return this.toDomain(saved);
