@@ -1,7 +1,7 @@
 import { Property } from './property.entity';
 
 export interface IPropertyRepository {
-  findAll(): Promise<Property[]>;
+  findAll(includeInactive?: boolean): Promise<Property[]>;
   findById(id: string): Promise<Property | null>;
   findByCode(code: string): Promise<Property | null>;
   findByCodeAnyStatus(code: string): Promise<Property | null>;

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
 import { GetPropertiesUseCase } from '../../application/use-cases/get-properties.use-case';
 import { SavePropertyUseCase, SavePropertyDto } from '../../application/use-cases/save-property.use-case';
 import { DeletePropertyUseCase } from '../../application/use-cases/delete-property.use-case';
@@ -13,8 +13,8 @@ export class PropertiesController {
   ) {}
 
   @Get()
-  async findAll() {
-    return this.getProperties.execute();
+  async findAll(@Query('includeInactive') includeInactive?: string) {
+    return this.getProperties.execute(includeInactive === 'true');
   }
 
   @Post()

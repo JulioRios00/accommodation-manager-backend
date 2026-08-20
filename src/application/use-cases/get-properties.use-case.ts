@@ -8,7 +8,7 @@ export class GetPropertiesUseCase {
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepo: IPropertyRepository,
   ) {}
 
-  async execute(): Promise<Property[]> {
-    return this.propertyRepo.findAll();
+  async execute(includeInactive = false): Promise<Property[]> {
+    return this.propertyRepo.findAll(includeInactive);
   }
 }

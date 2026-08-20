@@ -12,8 +12,11 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
     private readonly repo: Repository<PropertyOrmEntity>,
   ) {}
 
-  async findAll(): Promise<Property[]> {
-    const entities = await this.repo.find({ where: { active: true }, relations: ['beds'] });
+  async findAll(includeInactive = false): Promise<Property[]> {
+    const entities = await this.repo.find({
+      where: includeInactive ? {} : { active: true },
+      relations: ['beds'],
+    });
     return entities.map(this.toDomain);
   }
 
