@@ -13,7 +13,6 @@ export class LandlordOrmEntity {
   @Column({ length: 20, nullable: true }) bic: string;
   @Column({ length: 100, nullable: true }) paymentReference: string;
   @Column({ length: 50, nullable: true }) paymentMethod: string;
-  @Column({ type: 'int', nullable: true }) payoutDay: number;
   @Column({ type: 'int', nullable: true }) residentPaymentDueDay: number;
   @Column({ default: true }) active: boolean;
   @CreateDateColumn() createdAt: Date;

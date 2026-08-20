@@ -13,7 +13,6 @@ export interface SaveLandlordDto {
   bic?: string | null;
   paymentReference?: string | null;
   paymentMethod?: string | null;
-  payoutDay?: number | null;
   residentPaymentDueDay?: number | null;
 }
 
