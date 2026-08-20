@@ -21,6 +21,7 @@ export class ImportLandlordPaymentsUseCase {
     const byCode = new Map(properties.map(p => [p.code.toLowerCase(), p]));
     const landlords = await this.landlordRepo.findAll();
     const landlordByName = new Map(landlords.map(l => [l.name.toLowerCase(), l]));
+    const propertiesToUpdate = new Set<string>();
 
     // Existing payments for duplicate detection
     const existing = await this.paymentRepo.findAll();
@@ -39,6 +40,12 @@ export class ImportLandlordPaymentsUseCase {
       const identifier = `${row.propertyCode} / ${row.month}`;
       const property = byCode.get(row.propertyCode.toLowerCase());
       if (!property) { skip(identifier, `Property "${row.propertyCode}" not found`); continue; }
+
+      // Keep the property's own Payment Details in sync with the latest sheet row for it.
+      if (row.paymentReference) property.paymentReference = row.paymentReference;
+      if (row.supplier) property.propertySupplier = row.supplier;
+      if (row.notes) property.paymentNotes = row.notes;
+      if (row.paymentReference || row.supplier || row.notes) propertiesToUpdate.add(property.id);
 
       const key = `${property.id}|${row.month}`;
       if (existingKeys.has(key)) { skip(identifier, 'Duplicate payment (already imported)'); continue; }
@@ -67,6 +74,10 @@ export class ImportLandlordPaymentsUseCase {
 
       existingKeys.add(key);
       imported++;
+    }
+
+    for (const property of properties) {
+      if (propertiesToUpdate.has(property.id)) await this.propertyRepo.save(property);
     }
 
     return { imported, skipped, skipReasons };

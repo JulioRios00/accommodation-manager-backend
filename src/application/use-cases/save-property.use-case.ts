@@ -50,6 +50,7 @@ export interface SavePropertyDto {
   propertyEmail?: string | null;
   paymentReference?: string | null;
   propertySupplier?: string | null;
+  paymentNotes?: string | null;
   officeKeysComment?: string | null;
   landlordId?: string | null;
 }

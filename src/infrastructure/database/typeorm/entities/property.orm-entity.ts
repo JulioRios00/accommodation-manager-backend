@@ -161,6 +161,9 @@ export class PropertyOrmEntity {
   @Column({ length: 200, nullable: true })
   propertySupplier: string;
 
+  @Column({ type: 'text', nullable: true })
+  paymentNotes: string;
+
   // Key inventory comment
   @Column({ type: 'text', nullable: true })
   officeKeysComment: string;

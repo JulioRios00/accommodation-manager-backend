@@ -63,6 +63,7 @@ export class Property {
   // Payment
   paymentReference: string | null;
   propertySupplier: string | null;
+  paymentNotes: string | null;
 
   // Key inventory comment
   officeKeysComment: string | null;
