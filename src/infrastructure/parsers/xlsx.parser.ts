@@ -104,26 +104,46 @@ export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', require
 
   const result: ParsedRow[] = [];
 
+  // The property columns (A-J) are only filled in on a property's first bed row —
+  // merged/blank on the rest of its bed rows — so carry the last-seen values forward.
+  let lastProperty: {
+    code: string;
+    bu: string;
+    area: string | null;
+    fullAddress: string | null;
+    officeKeys: boolean;
+    keysCount: number;
+    securityKeysCount: number;
+    fobCount: number;
+    electricityStatus: string | null;
+    gasStatus: string | null;
+  } | null = null;
+
   // Data starts at row index 2 (row 3 in Excel, 0-indexed)
   for (let i = 2; i < rows.length; i++) {
     const r = rows[i];
-    if (!r || !r[0]) continue; // skip empty rows
+    if (!r) continue; // skip empty rows
 
-    const code = toStr(r[0]);
-    if (!code) continue;
+    const rowCode = toStr(r[0]);
+    if (rowCode) {
+      lastProperty = {
+        code: rowCode,
+        bu: toStr(r[1]) ?? '',
+        area: toStr(r[2]),
+        fullAddress: toStr(r[3]),
+        officeKeys: toBool(r[4]),
+        keysCount: toNum(r[5]),
+        securityKeysCount: toNum(r[6]),
+        fobCount: toNum(r[7]),
+        electricityStatus: toStr(r[8]),
+        gasStatus: toStr(r[9]),
+      };
+    }
+    if (!lastProperty) continue; // no property established yet — malformed leading row
 
     result.push({
-      // Property (cols A-J, indices 0-9)
-      code,
-      bu: toStr(r[1]) ?? '',
-      area: toStr(r[2]),
-      fullAddress: toStr(r[3]),
-      officeKeys: toBool(r[4]),
-      keysCount: toNum(r[5]),
-      securityKeysCount: toNum(r[6]),
-      fobCount: toNum(r[7]),
-      electricityStatus: toStr(r[8]),
-      gasStatus: toStr(r[9]),
+      // Property (cols A-J, indices 0-9) — carried forward across merged bed rows
+      ...lastProperty,
       // Bed (cols K-N, indices 10-13)
       ...parseBedNumber(r[10]),
       bedroomType: toStr(r[11]) ?? '',
