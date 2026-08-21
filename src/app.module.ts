@@ -48,6 +48,7 @@ import { GetResidentsUseCase } from './application/use-cases/get-residents.use-c
 import { GetBookingsUseCase } from './application/use-cases/get-bookings.use-case';
 import { SavePropertyUseCase } from './application/use-cases/save-property.use-case';
 import { DeletePropertyUseCase } from './application/use-cases/delete-property.use-case';
+import { HardDeletePropertyUseCase } from './application/use-cases/hard-delete-property.use-case';
 import { SaveBedUseCase } from './application/use-cases/save-bed.use-case';
 import { DeleteBedUseCase } from './application/use-cases/delete-bed.use-case';
 import { SaveResidentUseCase } from './application/use-cases/save-resident.use-case';
@@ -135,7 +136,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     ImportXlsxUseCase, ImportBillsUseCase, ImportMaintenanceUseCase, ImportDepositsUseCase, ImportLandlordPaymentsUseCase, ImportResidentPaymentsUseCase, ImportResidentsToClerkUseCase,
     GetDashboardStatsUseCase,
     GetPropertiesUseCase, GetBedsUseCase, GetResidentsUseCase, GetBookingsUseCase,
-    SavePropertyUseCase, DeletePropertyUseCase, SaveBedUseCase, DeleteBedUseCase,
+    SavePropertyUseCase, DeletePropertyUseCase, HardDeletePropertyUseCase, SaveBedUseCase, DeleteBedUseCase,
     SaveResidentUseCase, DeleteResidentUseCase, SaveBookingUseCase, DeleteBookingUseCase,
     GetLandlordsUseCase, SaveLandlordUseCase, DeleteLandlordUseCase,
     GetPropertyAdministratorsUseCase, SavePropertyAdministratorUseCase, DeletePropertyAdministratorUseCase,

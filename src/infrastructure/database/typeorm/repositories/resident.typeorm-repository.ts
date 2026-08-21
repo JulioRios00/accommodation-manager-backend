@@ -33,6 +33,11 @@ export class ResidentTypeOrmRepository implements IResidentRepository {
     return entity ? this.toDomain(entity) : null;
   }
 
+  async findByTelephone(telephone: string): Promise<Resident | null> {
+    const entity = await this.repo.findOne({ where: { telephone, active: true } });
+    return entity ? this.toDomain(entity) : null;
+  }
+
   async findByClerkUserId(clerkUserId: string): Promise<Resident | null> {
     const entity = await this.repo.findOne({ where: { clerkUserId, active: true } });
     return entity ? this.toDomain(entity) : null;

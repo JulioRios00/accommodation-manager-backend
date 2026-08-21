@@ -26,6 +26,8 @@ export class ImportXlsxUseCase {
     const bedroomCache = new Map<string, string>();
 
     for (const row of rows) {
+      if (row.bedNumber === null) continue; // row has no bed number cell — not a real bed row
+
       const { bed } = await this.upsertPropertyAndBed(row, bedroomCache);
 
       // Clear existing bookings for this bed before re-importing
@@ -34,7 +36,7 @@ export class ImportXlsxUseCase {
       // Create current resident booking if name exists and is not a placeholder
       const currentName = row.residentName;
       if (currentName && currentName.toLowerCase() !== 'resident full name') {
-        const resident = await this.residentRepo.save({
+        const resident = await this.upsertResident({
           fullName: currentName,
           email: row.residentEmail,
           telephone: row.residentTelephone,
@@ -72,7 +74,7 @@ export class ImportXlsxUseCase {
       // Create temporary/upcoming resident booking if present
       const tempName = row.tempResidentName;
       if (tempName && tempName.toLowerCase() !== 'new resident' && tempName.toLowerCase() !== 'resident full name') {
-        const tempResident = await this.residentRepo.save({
+        const tempResident = await this.upsertResident({
           fullName: tempName,
           email: row.tempResidentEmail,
           telephone: row.tempResidentTelephone,
@@ -117,6 +119,7 @@ export class ImportXlsxUseCase {
       const residentName = row.residentName;
       if (!residentName || residentName.toLowerCase() === 'resident full name') continue;
       if (!row.checkOutDate) continue;
+      if (row.bedNumber === null) continue; // row has no bed number cell — not a real bed row
 
       const { bed } = await this.upsertPropertyAndBed(row, bedroomCache);
 
@@ -129,7 +132,7 @@ export class ImportXlsxUseCase {
       );
       if (alreadyImported) continue;
 
-      const resident = await this.residentRepo.save({
+      const resident = await this.upsertResident({
         fullName: residentName,
         email: row.residentEmail,
         telephone: row.residentTelephone,
@@ -161,7 +164,7 @@ export class ImportXlsxUseCase {
   }
 
   private async upsertPropertyAndBed(
-    row: ParsedRow,
+    row: ParsedRow & { bedNumber: number },
     bedroomCache: Map<string, string>,
   ): Promise<{ property: Property; bed: Bed }> {
     const property = await this.propertyRepo.upsertByCode({
@@ -192,6 +195,29 @@ export class ImportXlsxUseCase {
     });
 
     return { property, bed };
+  }
+
+  // Matches an existing resident by email or telephone (in that order) so re-imports
+  // and repeated occupants across properties update one record instead of creating
+  // a fresh duplicate every time.
+  private async upsertResident(data: {
+    fullName: string;
+    email: string | null;
+    telephone: string | null;
+    nationality: string | null;
+    personalId: string | null;
+    iban: string | null;
+    emergencyContact: string | null;
+    source: string | null;
+  }) {
+    const existing =
+      (data.email && (await this.residentRepo.findByEmail(data.email))) ||
+      (data.telephone && (await this.residentRepo.findByTelephone(data.telephone))) ||
+      null;
+
+    return existing
+      ? this.residentRepo.save({ ...data, id: existing.id })
+      : this.residentRepo.save(data);
   }
 
   private async ensureBedroom(propertyId: string, letter: string, cache: Map<string, string>): Promise<string> {

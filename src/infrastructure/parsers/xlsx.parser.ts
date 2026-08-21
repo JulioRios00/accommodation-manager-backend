@@ -13,7 +13,7 @@ export interface ParsedRow {
   electricityStatus: string | null;
   gasStatus: string | null;
   // Bed
-  bedNumber: number;
+  bedNumber: number | null;
   /** Trailing letter from a bed number like "12B" — identifies which physical bedroom the bed is in. */
   bedroomLetter: string | null;
   bedroomType: string;
@@ -84,10 +84,11 @@ function toBool(value: any): boolean {
 // bedroom letter ("12B"), where the letter groups beds sharing a physical bedroom.
 const BED_NUMBER_RE = /^(\d+)\s*([A-Za-z])?$/;
 
-function parseBedNumber(value: any): { bedNumber: number; bedroomLetter: string | null } {
+function parseBedNumber(value: any): { bedNumber: number | null; bedroomLetter: string | null } {
   const raw = value === null || value === undefined ? '' : String(value).trim();
+  if (!raw) return { bedNumber: null, bedroomLetter: null };
   const match = raw.match(BED_NUMBER_RE);
-  if (!match) return { bedNumber: toNum(value), bedroomLetter: null };
+  if (!match) return { bedNumber: null, bedroomLetter: null };
   return { bedNumber: Number(match[1]), bedroomLetter: match[2] ? match[2].toUpperCase() : null };
 }
 

@@ -25,6 +25,11 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
     return entity ? this.toDomain(entity) : null;
   }
 
+  async findByIdAnyStatus(id: string): Promise<Property | null> {
+    const entity = await this.repo.findOne({ where: { id } });
+    return entity ? this.toDomain(entity) : null;
+  }
+
   async findByCode(code: string): Promise<Property | null> {
     const entity = await this.repo.findOne({ where: { code, active: true } });
     return entity ? this.toDomain(entity) : null;

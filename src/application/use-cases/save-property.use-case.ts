@@ -54,6 +54,7 @@ export interface SavePropertyDto {
   landlordPaymentDueDay?: number | null;
   officeKeysComment?: string | null;
   landlordId?: string | null;
+  active?: boolean;
 }
 
 const ALLOWED_PROPERTY_TYPES = ['House', 'Apartment', 'Duplex', 'Studio Block', 'Other'];
@@ -67,7 +68,7 @@ export class SavePropertyUseCase {
 
   async execute(dto: SavePropertyDto): Promise<Property> {
     if (dto.id) {
-      const existing = await this.repo.findById(dto.id);
+      const existing = await this.repo.findByIdAnyStatus(dto.id);
       if (!existing) throw new NotFoundException(`Property ${dto.id} not found`);
     }
     const normalized = this.normalize(dto);
