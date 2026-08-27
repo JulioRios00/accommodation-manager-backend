@@ -83,6 +83,7 @@ import { GetDepositTransactionsUseCase } from './application/use-cases/get-depos
 import { SaveDepositTransactionUseCase } from './application/use-cases/save-deposit-transaction.use-case';
 import { DeleteDepositTransactionUseCase } from './application/use-cases/delete-deposit-transaction.use-case';
 import { GetDelinquencyReportUseCase } from './application/use-cases/get-delinquency-report.use-case';
+import { GetPortfolioSnapshotUseCase } from './application/use-cases/get-portfolio-snapshot.use-case';
 import { GetCompaniesUseCase } from './application/use-cases/get-companies.use-case';
 import { SaveCompanyUseCase } from './application/use-cases/save-company.use-case';
 import { DeleteCompanyUseCase } from './application/use-cases/delete-company.use-case';
@@ -98,6 +99,12 @@ import { SaveSpaceItemUseCase } from './application/use-cases/save-space-item.us
 import { DeleteSpaceItemUseCase } from './application/use-cases/delete-space-item.use-case';
 import { PropertySpacesController } from './presentation/controllers/property-spaces.controller';
 import { GetRolePermissionsUseCase } from './application/use-cases/get-role-permissions.use-case';
+import { GetAuditLogsUseCase } from './application/use-cases/get-audit-logs.use-case';
+import { AuditLogService } from './application/services/audit-log.service';
+import { AuditLogsController } from './presentation/controllers/audit-logs.controller';
+import { TransitionExpiredBookingsUseCase } from './application/use-cases/transition-expired-bookings.use-case';
+import { SyncPropertyLeaseStatusUseCase } from './application/use-cases/sync-property-lease-status.use-case';
+import { BookingStatusCron } from './application/services/booking-status.cron';
 import { SaveRolePermissionsUseCase } from './application/use-cases/save-role-permissions.use-case';
 import { GenerateUpcomingRentPaymentsUseCase } from './application/use-cases/generate-upcoming-rent-payments.use-case';
 import { GenerateUpcomingLandlordPaymentsUseCase } from './application/use-cases/generate-upcoming-landlord-payments.use-case';
@@ -126,7 +133,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     LandlordsController, ServiceProvidersController, MaintenanceTicketsController, PortalController,
     KeyLogsController, CheckoutController, RentPaymentsController, LandlordPaymentsController,
     DepositTransactionsController, ReportsController, CompaniesController, BedroomsController,
-    PropertySpacesController, UsersController, RolePermissionsController,
+    PropertySpacesController, UsersController, RolePermissionsController, AuditLogsController,
   ],
   providers: [
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
@@ -147,13 +154,15 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     GetRentPaymentsUseCase, SaveRentPaymentUseCase, DeleteRentPaymentUseCase, AddRentInstallmentUseCase,
     GetLandlordPaymentsUseCase, SaveLandlordPaymentUseCase, DeleteLandlordPaymentUseCase,
     GetDepositTransactionsUseCase, SaveDepositTransactionUseCase, DeleteDepositTransactionUseCase,
-    GetDelinquencyReportUseCase,
+    GetDelinquencyReportUseCase, GetPortfolioSnapshotUseCase,
     GetCompaniesUseCase, SaveCompanyUseCase, DeleteCompanyUseCase,
     GetBedroomsUseCase, SaveBedroomUseCase, DeleteBedroomUseCase,
     GetPropertySpacesUseCase, SavePropertySpaceUseCase, DeletePropertySpaceUseCase,
     SaveSpaceItemUseCase, DeleteSpaceItemUseCase,
     GetRolePermissionsUseCase, SaveRolePermissionsUseCase,
     GenerateUpcomingRentPaymentsUseCase, GenerateUpcomingLandlordPaymentsUseCase, PaymentGenerationCron,
+    GetAuditLogsUseCase, AuditLogService,
+    TransitionExpiredBookingsUseCase, SyncPropertyLeaseStatusUseCase, BookingStatusCron,
   ],
 })
 export class AppModule implements NestModule {
