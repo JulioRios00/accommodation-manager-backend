@@ -16,6 +16,8 @@ export interface ParsedRow {
   bedNumber: number | null;
   /** Trailing letter from a bed number like "12B" — identifies which physical bedroom the bed is in. */
   bedroomLetter: string | null;
+  /** Raw bed number cell as read from the sheet, trimmed — kept even when it fails to parse, so callers can log/report the exact unrecognized value. */
+  bedNumberRaw: string | null;
   bedroomType: string;
   sex: string;
   bedSize: string;
@@ -84,12 +86,12 @@ function toBool(value: any): boolean {
 // bedroom letter ("12B"), where the letter groups beds sharing a physical bedroom.
 const BED_NUMBER_RE = /^(\d+)\s*([A-Za-z])?$/;
 
-function parseBedNumber(value: any): { bedNumber: number | null; bedroomLetter: string | null } {
+function parseBedNumber(value: any): { bedNumber: number | null; bedroomLetter: string | null; bedNumberRaw: string | null } {
   const raw = value === null || value === undefined ? '' : String(value).trim();
-  if (!raw) return { bedNumber: null, bedroomLetter: null };
+  if (!raw) return { bedNumber: null, bedroomLetter: null, bedNumberRaw: null };
   const match = raw.match(BED_NUMBER_RE);
-  if (!match) return { bedNumber: null, bedroomLetter: null };
-  return { bedNumber: Number(match[1]), bedroomLetter: match[2] ? match[2].toUpperCase() : null };
+  if (!match) return { bedNumber: null, bedroomLetter: null, bedNumberRaw: raw };
+  return { bedNumber: Number(match[1]), bedroomLetter: match[2] ? match[2].toUpperCase() : null, bedNumberRaw: raw };
 }
 
 export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', required: boolean = true): ParsedRow[] {

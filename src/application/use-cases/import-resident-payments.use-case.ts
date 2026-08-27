@@ -52,6 +52,13 @@ export class ImportResidentPaymentsUseCase {
       const key = `${property.id}|${resident.id}|${row.month}`;
       if (existingKeys.has(key)) { skip(identifier, 'Duplicate payment (already imported)'); continue; }
 
+      // Column C (TenantPaymentDay) is also the resident's own Payment Due Day, shown on
+      // their profile — not just a per-month snapshot on the generated payment record.
+      if (row.paymentDueDay != null && resident.paymentDueDay !== row.paymentDueDay) {
+        await this.residentRepo.save({ id: resident.id, paymentDueDay: row.paymentDueDay });
+        resident.paymentDueDay = row.paymentDueDay;
+      }
+
       // Find booking for this resident in this property
       const booking = allBookings.find(b => b.residentId === resident.id);
 

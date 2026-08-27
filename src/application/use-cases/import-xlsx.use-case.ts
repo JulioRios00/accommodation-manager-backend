@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { parseXlsx, ParsedRow } from '../../infrastructure/parsers/xlsx.parser';
 import { Property } from '../../domain/property/property.entity';
 import { Bed } from '../../domain/bed/bed.entity';
@@ -7,9 +7,20 @@ import { IBedRepository, BED_REPOSITORY } from '../../domain/bed/bed.repository'
 import { IResidentRepository, RESIDENT_REPOSITORY } from '../../domain/resident/resident.repository';
 import { IBookingRepository, BOOKING_REPOSITORY } from '../../domain/booking/booking.repository';
 import { IBedroomRepository, BEDROOM_REPOSITORY } from '../../domain/bedroom/bedroom.repository';
+import { ImportSkipReason } from './import-deposits.use-case';
+
+// Column M (Sex) on the Control sheet — 'M'/'F' — doubles as the resident's own gender.
+function mapGender(sex: string | null | undefined): string | null {
+  const s = sex?.trim().toUpperCase();
+  if (s === 'M') return 'Male';
+  if (s === 'F') return 'Female';
+  return null;
+}
 
 @Injectable()
 export class ImportXlsxUseCase {
+  private readonly logger = new Logger(ImportXlsxUseCase.name);
+
   constructor(
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepo: IPropertyRepository,
     @Inject(BED_REPOSITORY) private readonly bedRepo: IBedRepository,
@@ -18,15 +29,29 @@ export class ImportXlsxUseCase {
     @Inject(BEDROOM_REPOSITORY) private readonly bedroomRepo: IBedroomRepository,
   ) {}
 
-  async execute(buffer: Buffer): Promise<{ imported: number; historicalImported: number }> {
+  async execute(buffer: Buffer): Promise<{ imported: number; historicalImported: number; skipped: number; skipReasons: ImportSkipReason[] }> {
     const rows = parseXlsx(buffer);
     let imported = 0;
+    let skipped = 0;
+    const skipReasons: ImportSkipReason[] = [];
+    const skip = (identifier: string, reason: string) => {
+      skipped++;
+      skipReasons.push({ identifier, reason });
+      this.logger.warn(`[import-xlsx] skip ${identifier}: ${reason}`);
+    };
     // Caches bedroom lookups per property+letter for the duration of this import,
     // so repeated rows for the same physical bedroom don't race to create duplicates.
     const bedroomCache = new Map<string, string>();
 
     for (const row of rows) {
-      if (row.bedNumber === null) continue; // row has no bed number cell — not a real bed row
+      if (row.bedNumber === null) {
+        // Only flag rows that actually had bed-number content — trailing blank
+        // filler rows below a sheet's real data also land here and aren't errors.
+        if (row.bedNumberRaw) {
+          skip(row.code, `Unrecognized bed number "${row.bedNumberRaw}" (expected digits with optional trailing letter, e.g. "12B")`);
+        }
+        continue;
+      }
 
       const { bed } = await this.upsertPropertyAndBed(row, bedroomCache);
 
@@ -45,6 +70,7 @@ export class ImportXlsxUseCase {
           iban: row.residentIban,
           emergencyContact: row.residentEmergencyContact,
           source: row.residentSource,
+          gender: mapGender(row.sex),
         });
 
         const today = new Date();
@@ -83,6 +109,7 @@ export class ImportXlsxUseCase {
           iban: row.tempResidentIban,
           emergencyContact: row.tempResidentEmergencyContact,
           source: row.tempResidentSource,
+          gender: mapGender(row.sex),
         });
 
         await this.bookingRepo.save({
@@ -102,16 +129,20 @@ export class ImportXlsxUseCase {
       imported++;
     }
 
-    const historicalImported = await this.importCheckedOut(buffer, bedroomCache);
+    const historicalImported = await this.importCheckedOut(buffer, bedroomCache, skip);
 
-    return { imported, historicalImported };
+    return { imported, historicalImported, skipped, skipReasons };
   }
 
   // The CheckedOut sheet shares the exact column layout of the Control sheet, but every
   // row represents a resident who has already moved out — imported as a 'completed'
   // booking so occupancy history survives even after Control is re-imported (which wipes
   // and recreates each bed's active/upcoming bookings).
-  private async importCheckedOut(buffer: Buffer, bedroomCache: Map<string, string>): Promise<number> {
+  private async importCheckedOut(
+    buffer: Buffer,
+    bedroomCache: Map<string, string>,
+    skip: (identifier: string, reason: string) => void,
+  ): Promise<number> {
     const rows = parseXlsx(buffer, 'CheckedOut', false);
     let imported = 0;
 
@@ -119,7 +150,12 @@ export class ImportXlsxUseCase {
       const residentName = row.residentName;
       if (!residentName || residentName.toLowerCase() === 'resident full name') continue;
       if (!row.checkOutDate) continue;
-      if (row.bedNumber === null) continue; // row has no bed number cell — not a real bed row
+      if (row.bedNumber === null) {
+        if (row.bedNumberRaw) {
+          skip(row.code, `[CheckedOut] Unrecognized bed number "${row.bedNumberRaw}" (expected digits with optional trailing letter, e.g. "12B")`);
+        }
+        continue;
+      }
 
       const { bed } = await this.upsertPropertyAndBed(row, bedroomCache);
 
@@ -141,6 +177,7 @@ export class ImportXlsxUseCase {
         iban: row.residentIban,
         emergencyContact: row.residentEmergencyContact,
         source: row.residentSource,
+        gender: mapGender(row.sex),
       });
 
       await this.bookingRepo.save({
@@ -209,6 +246,7 @@ export class ImportXlsxUseCase {
     iban: string | null;
     emergencyContact: string | null;
     source: string | null;
+    gender?: string | null;
   }) {
     const existing =
       (data.email && (await this.residentRepo.findByEmail(data.email))) ||

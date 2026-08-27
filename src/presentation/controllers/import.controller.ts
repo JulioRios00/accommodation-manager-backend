@@ -48,8 +48,9 @@ export class ImportController {
   async importAccommodation(@UploadedFile() file: Express.Multer.File) {
     fileGuard(file);
     const result = await this.importXlsxUseCase.execute(file.buffer);
+    const skipNote = result.skipped ? ` — ${summarizeSkips(result.skipReasons)}` : '';
     return {
-      message: `Imported ${result.imported} beds, ${result.historicalImported} historical (checked-out) bookings`,
+      message: `Imported ${result.imported} beds, ${result.historicalImported} historical (checked-out) bookings (${result.skipped} skipped${skipNote})`,
       ...result,
     };
   }
