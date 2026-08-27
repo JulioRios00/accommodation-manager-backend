@@ -2,6 +2,7 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from '@nes
 import { Property } from '../../domain/property/property.entity';
 import { IPropertyRepository, PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
 import { ILandlordRepository, LANDLORD_REPOSITORY } from '../../domain/landlord/landlord.repository';
+import { Actor, AuditLogService } from '../services/audit-log.service';
 
 export interface SavePropertyDto {
   id?: string;
@@ -52,38 +53,77 @@ export interface SavePropertyDto {
   propertySupplier?: string | null;
   paymentNotes?: string | null;
   landlordPaymentDueDay?: number | null;
+  residentPaymentDueDay?: number | null;
   officeKeysComment?: string | null;
   landlordId?: string | null;
+  leaseStartDate?: string | null;
+  leaseEndDate?: string | null;
   active?: boolean;
 }
 
 const ALLOWED_PROPERTY_TYPES = ['House', 'Apartment', 'Duplex', 'Studio Block', 'Other'];
+
+// When a lease period is on file, `active` is derived from it rather than manually toggled —
+// null end date means an ongoing/undetermined lease. With no lease dates at all (e.g. a
+// property imported without lease tracking), fall back to whatever the caller sent.
+function deriveActive(leaseStartDate: Date | null, leaseEndDate: Date | null, fallback: boolean, now = new Date()): boolean {
+  if (!leaseStartDate && !leaseEndDate) return fallback;
+  if (leaseStartDate && now < leaseStartDate) return false;
+  if (leaseEndDate && now > leaseEndDate) return false;
+  return true;
+}
 
 @Injectable()
 export class SavePropertyUseCase {
   constructor(
     @Inject(PROPERTY_REPOSITORY) private readonly repo: IPropertyRepository,
     @Inject(LANDLORD_REPOSITORY) private readonly landlordRepo: ILandlordRepository,
+    private readonly auditLog: AuditLogService,
   ) {}
 
-  async execute(dto: SavePropertyDto): Promise<Property> {
+  async execute(dto: SavePropertyDto, actor?: Actor): Promise<Property> {
+    let existing: Property | null = null;
     if (dto.id) {
-      const existing = await this.repo.findByIdAnyStatus(dto.id);
+      existing = await this.repo.findByIdAnyStatus(dto.id);
       if (!existing) throw new NotFoundException(`Property ${dto.id} not found`);
     }
     const normalized = this.normalize(dto);
     this.validateFields(normalized);
     await this.validateUniqueness(normalized);
     await this.validateLandlord(normalized);
-    if (normalized.id) return this.repo.save(normalized as any);
 
-    // A soft-deleted property can leave a row behind with this code — reactivate it
-    // instead of inserting a fresh row, which would hit the unique constraint on `code`.
-    const deletedMatch = await this.repo.findByCodeAnyStatus(normalized.code);
-    if (deletedMatch && !deletedMatch.active) {
-      return this.repo.save({ ...normalized, id: deletedMatch.id, active: true } as any);
+    const leaseStartDate = normalized.leaseStartDate ? new Date(normalized.leaseStartDate) : null;
+    const leaseEndDate = normalized.leaseEndDate ? new Date(normalized.leaseEndDate) : null;
+    const payload = {
+      ...normalized,
+      leaseStartDate,
+      leaseEndDate,
+      active: deriveActive(leaseStartDate, leaseEndDate, normalized.active ?? existing?.active ?? true),
+    };
+
+    let property: Property;
+    if (payload.id) {
+      property = await this.repo.save(payload as any);
+    } else {
+      // A soft-deleted property can leave a row behind with this code — reactivate it
+      // instead of inserting a fresh row, which would hit the unique constraint on `code`.
+      const deletedMatch = await this.repo.findByCodeAnyStatus(payload.code);
+      property =
+        deletedMatch && !deletedMatch.active
+          ? await this.repo.save({ ...payload, id: deletedMatch.id } as any)
+          : await this.repo.save(payload as any);
     }
-    return this.repo.save({ ...normalized, active: true } as any);
+
+    await this.auditLog.record({
+      actor,
+      action: existing ? 'update' : 'create',
+      entityType: 'Property',
+      entityId: property.id,
+      before: existing as unknown as Record<string, unknown>,
+      after: property as unknown as Record<string, unknown>,
+    });
+
+    return property;
   }
 
   private normalize(dto: SavePropertyDto): SavePropertyDto {
@@ -92,6 +132,8 @@ export class SavePropertyUseCase {
       result.eirCode = result.eirCode.trim().toUpperCase() || null;
     }
     if (result.internetContractEndDate === '') result.internetContractEndDate = null;
+    if (result.leaseStartDate === '') result.leaseStartDate = null;
+    if (result.leaseEndDate === '') result.leaseEndDate = null;
     return result;
   }
 

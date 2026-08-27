@@ -123,8 +123,11 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
     p.propertySupplier = entity.propertySupplier ?? null;
     p.paymentNotes = entity.paymentNotes ?? null;
     p.landlordPaymentDueDay = entity.landlordPaymentDueDay ?? null;
+    p.residentPaymentDueDay = entity.residentPaymentDueDay ?? null;
     p.officeKeysComment = entity.officeKeysComment ?? null;
     p.landlordId = entity.landlordId ?? null;
+    p.leaseStartDate = entity.leaseStartDate ?? null;
+    p.leaseEndDate = entity.leaseEndDate ?? null;
     p.active = entity.active;
     p.createdAt = entity.createdAt;
     p.updatedAt = entity.updatedAt;

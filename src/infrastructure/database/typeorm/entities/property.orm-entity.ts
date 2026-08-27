@@ -167,6 +167,9 @@ export class PropertyOrmEntity {
   @Column({ type: 'int', nullable: true })
   landlordPaymentDueDay: number;
 
+  @Column({ type: 'int', nullable: true })
+  residentPaymentDueDay: number;
+
   // Key inventory comment
   @Column({ type: 'text', nullable: true })
   officeKeysComment: string;
@@ -174,6 +177,12 @@ export class PropertyOrmEntity {
   // Relations
   @Column({ type: 'uuid', nullable: true })
   landlordId: string;
+
+  @Column({ type: 'date', nullable: true })
+  leaseStartDate: Date;
+
+  @Column({ type: 'date', nullable: true })
+  leaseEndDate: Date;
 
   @Column({ default: true })
   active: boolean;

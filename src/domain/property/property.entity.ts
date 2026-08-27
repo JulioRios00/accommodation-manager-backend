@@ -65,12 +65,18 @@ export class Property {
   propertySupplier: string | null;
   paymentNotes: string | null;
   landlordPaymentDueDay: number | null;
+  residentPaymentDueDay: number | null;
 
   // Key inventory comment
   officeKeysComment: string | null;
 
   // Relations
   landlordId: string | null;
+
+  // Lease period with the landlord. When set, `active` is auto-derived from whether "now"
+  // falls within [leaseStartDate, leaseEndDate] (null end = ongoing/undetermined).
+  leaseStartDate: Date | null;
+  leaseEndDate: Date | null;
 
   active: boolean;
   createdAt: Date;
