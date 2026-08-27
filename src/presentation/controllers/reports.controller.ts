@@ -1,10 +1,20 @@
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { GetDelinquencyReportUseCase } from '../../application/use-cases/get-delinquency-report.use-case';
+import { GetPortfolioSnapshotUseCase } from '../../application/use-cases/get-portfolio-snapshot.use-case';
 
 @Controller('reports')
 export class ReportsController {
-  constructor(private readonly delinquencyReport: GetDelinquencyReportUseCase) {}
+  constructor(
+    private readonly delinquencyReport: GetDelinquencyReportUseCase,
+    private readonly portfolioSnapshot: GetPortfolioSnapshotUseCase,
+  ) {}
+
+  @Get('portfolio-snapshot')
+  async getPortfolioSnapshot(@Query('date') date?: string) {
+    if (!date) throw new BadRequestException('date is required (YYYY-MM-DD)');
+    return this.portfolioSnapshot.execute(date);
+  }
 
   @Get('delinquency')
   async getDelinquency(

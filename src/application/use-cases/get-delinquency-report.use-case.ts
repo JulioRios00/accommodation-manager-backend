@@ -8,6 +8,8 @@ export interface DelinquencyFilter {
   month?: string;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class GetDelinquencyReportUseCase {
   constructor(
@@ -17,7 +19,17 @@ export class GetDelinquencyReportUseCase {
   ) {}
 
   async execute(filter?: DelinquencyFilter) {
-    const payments = await this.paymentRepo.findAll(filter);
+    // The UI's "Property ID" search field is the only property identifier users can see
+    // (the human-readable code, e.g. "33HBH") — resolve it to the internal UUID that
+    // rent_payments.propertyId actually stores before filtering.
+    let resolvedFilter = filter;
+    if (filter?.propertyId) {
+      const byCode = await this.propertyRepo.findByCode(filter.propertyId.trim());
+      if (!byCode && !UUID_RE.test(filter.propertyId)) return []; // no such code, and not a raw UUID either — clean empty state
+      resolvedFilter = { ...filter, propertyId: byCode ? byCode.id : filter.propertyId };
+    }
+
+    const payments = await this.paymentRepo.findAll(resolvedFilter);
     const outstanding = payments.filter(p => p.amountPaid < p.rentAmount);
 
     return Promise.all(outstanding.map(async p => {
