@@ -10,6 +10,10 @@ export interface Actor {
 // Fields every entity carries that aren't meaningful in a diff (or are noisy to repeat every time).
 const IGNORED_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'active']);
 
+// null, undefined, and '' are all "nothing here" — treat them as the same empty state so a
+// field that was unset before and stays unset after (e.g. on create) isn't reported as a change.
+const isEmpty = (v: unknown) => v === null || v === undefined || v === '';
+
 function diffFields(before: Record<string, unknown> | null, after: Record<string, unknown> | null): AuditFieldChange[] {
   const keys = new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})]);
   const changes: AuditFieldChange[] = [];
@@ -17,6 +21,7 @@ function diffFields(before: Record<string, unknown> | null, after: Record<string
     if (IGNORED_FIELDS.has(key)) continue;
     const beforeVal = before ? before[key] : undefined;
     const afterVal = after ? after[key] : undefined;
+    if (isEmpty(beforeVal) && isEmpty(afterVal)) continue;
     if (JSON.stringify(beforeVal) === JSON.stringify(afterVal)) continue;
     changes.push({ field: key, before: beforeVal ?? null, after: afterVal ?? null });
   }
