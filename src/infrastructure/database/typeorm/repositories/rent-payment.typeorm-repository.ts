@@ -9,11 +9,12 @@ import { RentPaymentInstallmentOrmEntity, RentPaymentOrmEntity } from '../entiti
 export class RentPaymentTypeOrmRepository implements IRentPaymentRepository {
   constructor(@InjectRepository(RentPaymentOrmEntity) private readonly repo: Repository<RentPaymentOrmEntity>) {}
 
-  async findAll(filter?: { propertyId?: string; month?: string; residentId?: string }): Promise<RentPayment[]> {
+  async findAll(filter?: { propertyId?: string; month?: string; residentId?: string; bookingId?: string }): Promise<RentPayment[]> {
     const where: FindOptionsWhere<RentPaymentOrmEntity> = { active: true };
     if (filter?.propertyId) where.propertyId = filter.propertyId;
     if (filter?.month) where.month = filter.month;
     if (filter?.residentId) where.residentId = filter.residentId;
+    if (filter?.bookingId) where.bookingId = filter.bookingId;
     return (await this.repo.find({ where, order: { month: 'DESC' } })).map(this.toDomain);
   }
 

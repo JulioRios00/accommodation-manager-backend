@@ -9,6 +9,7 @@ export interface IRentPaymentRepository {
     propertyId?: string;
     month?: string;
     residentId?: string;
+    bookingId?: string;
   }): Promise<RentPayment[]>;
   findById(id: string): Promise<RentPayment | null>;
   save(payment: Partial<RentPayment>): Promise<RentPayment>;

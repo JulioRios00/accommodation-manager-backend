@@ -4,6 +4,8 @@ import { SaveBookingUseCase, SaveBookingDto } from '../../application/use-cases/
 import { DeleteBookingUseCase } from '../../application/use-cases/delete-booking.use-case';
 import { BookingStatus } from '../../domain/booking/booking.entity';
 import { Roles } from '../decorators/roles.decorator';
+import { CurrentActor } from '../decorators/current-actor.decorator';
+import { Actor } from '../../application/services/audit-log.service';
 
 @Controller('bookings')
 export class BookingsController {
@@ -19,21 +21,21 @@ export class BookingsController {
   }
 
   @Post()
-  @Roles('sysadmin', 'manager')
-  async create(@Body() dto: SaveBookingDto) {
-    return this.saveBooking.execute(dto);
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
+  async create(@Body() dto: SaveBookingDto, @CurrentActor() actor?: Actor) {
+    return this.saveBooking.execute(dto, actor);
   }
 
   @Put(':id')
-  @Roles('sysadmin', 'manager')
-  async update(@Param('id') id: string, @Body() dto: SaveBookingDto) {
-    return this.saveBooking.execute({ ...dto, id });
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
+  async update(@Param('id') id: string, @Body() dto: SaveBookingDto, @CurrentActor() actor?: Actor) {
+    return this.saveBooking.execute({ ...dto, id }, actor);
   }
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles('sysadmin', 'manager')
-  async remove(@Param('id') id: string) {
-    await this.deleteBooking.execute(id);
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
+  async remove(@Param('id') id: string, @CurrentActor() actor?: Actor) {
+    await this.deleteBooking.execute(id, actor);
   }
 }
