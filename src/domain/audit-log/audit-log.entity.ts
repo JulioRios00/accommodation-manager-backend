@@ -1,11 +1,18 @@
+export type AuditAction = 'create' | 'update' | 'delete';
+
+export interface AuditFieldChange {
+  field: string;
+  before: unknown;
+  after: unknown;
+}
+
 export class AuditLog {
   id: string;
+  userId: string;
+  userRole: string | null;
+  action: AuditAction;
   entityType: string;
   entityId: string;
-  field: string | null;
-  oldValue: string | null;
-  newValue: string | null;
-  clerkUserId: string | null;
-  clerkUserName: string | null;
+  changes: AuditFieldChange[];
   createdAt: Date;
 }

@@ -1,14 +1,14 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { AuditAction, AuditFieldChange } from '../../../../domain/audit-log/audit-log.entity';
 
 @Entity('audit_logs')
 export class AuditLogOrmEntity {
   @PrimaryGeneratedColumn('uuid') id: string;
-  @Column({ length: 50 }) entityType: string;
-  @Column('uuid') entityId: string;
-  @Column({ length: 100, nullable: true }) field: string;
-  @Column({ type: 'text', nullable: true }) oldValue: string;
-  @Column({ type: 'text', nullable: true }) newValue: string;
-  @Column({ length: 100, nullable: true }) clerkUserId: string;
-  @Column({ length: 200, nullable: true }) clerkUserName: string;
-  @CreateDateColumn() createdAt: Date;
+  @Index() @Column({ type: 'varchar', length: 100 }) userId: string;
+  @Column({ type: 'varchar', length: 30, nullable: true }) userRole: string;
+  @Column({ type: 'varchar', length: 10 }) action: AuditAction;
+  @Index() @Column({ length: 50 }) entityType: string;
+  @Index() @Column({ type: 'uuid' }) entityId: string;
+  @Column({ type: 'jsonb', default: [] }) changes: AuditFieldChange[];
+  @Index() @CreateDateColumn() createdAt: Date;
 }

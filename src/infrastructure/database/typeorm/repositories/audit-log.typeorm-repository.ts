@@ -1,27 +1,45 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, Repository } from 'typeorm';
+import { Between, DeepPartial, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { AuditLog } from '../../../../domain/audit-log/audit-log.entity';
-import { IAuditLogRepository } from '../../../../domain/audit-log/audit-log.repository';
+import { AuditLogFilter, IAuditLogRepository } from '../../../../domain/audit-log/audit-log.repository';
 import { AuditLogOrmEntity } from '../entities/audit-log.orm-entity';
 
 @Injectable()
 export class AuditLogTypeOrmRepository implements IAuditLogRepository {
   constructor(@InjectRepository(AuditLogOrmEntity) private readonly repo: Repository<AuditLogOrmEntity>) {}
 
-  async findByEntity(entityType: string, entityId: string): Promise<AuditLog[]> {
-    return (await this.repo.find({ where: { entityType, entityId }, order: { createdAt: 'DESC' } })).map(e => {
-      const d = new AuditLog();
-      d.id = e.id; d.entityType = e.entityType; d.entityId = e.entityId;
-      d.field = e.field ?? null; d.oldValue = e.oldValue ?? null; d.newValue = e.newValue ?? null;
-      d.clerkUserId = e.clerkUserId ?? null; d.clerkUserName = e.clerkUserName ?? null;
-      d.createdAt = e.createdAt;
-      return d;
-    });
+  async save(entry: Omit<AuditLog, 'id' | 'createdAt'>): Promise<AuditLog> {
+    const e = this.repo.create(entry as DeepPartial<AuditLogOrmEntity>);
+    return this.toDomain(await this.repo.save(e));
   }
 
-  async saveMany(logs: Partial<AuditLog>[]): Promise<void> {
-    const entities = logs.map(l => this.repo.create(l as DeepPartial<AuditLogOrmEntity>));
-    await this.repo.save(entities);
+  async findAll(filter?: AuditLogFilter): Promise<AuditLog[]> {
+    const where: Record<string, unknown> = {};
+    if (filter?.userId) where.userId = filter.userId;
+    if (filter?.entityType) where.entityType = filter.entityType;
+    if (filter?.entityId) where.entityId = filter.entityId;
+    if (filter?.dateFrom && filter?.dateTo) {
+      where.createdAt = Between(new Date(filter.dateFrom), new Date(`${filter.dateTo}T23:59:59.999`));
+    } else if (filter?.dateFrom) {
+      where.createdAt = MoreThanOrEqual(new Date(filter.dateFrom));
+    } else if (filter?.dateTo) {
+      where.createdAt = LessThanOrEqual(new Date(`${filter.dateTo}T23:59:59.999`));
+    }
+    const entities = await this.repo.find({ where, order: { createdAt: 'DESC' }, take: 500 });
+    return entities.map(this.toDomain);
+  }
+
+  private toDomain(e: AuditLogOrmEntity): AuditLog {
+    const d = new AuditLog();
+    d.id = e.id;
+    d.userId = e.userId;
+    d.userRole = e.userRole ?? null;
+    d.action = e.action;
+    d.entityType = e.entityType;
+    d.entityId = e.entityId;
+    d.changes = e.changes ?? [];
+    d.createdAt = e.createdAt;
+    return d;
   }
 }
