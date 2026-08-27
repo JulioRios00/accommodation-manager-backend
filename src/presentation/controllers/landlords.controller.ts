@@ -22,18 +22,18 @@ export class LandlordsController {
   async findAll() { return this.getLandlords.execute(); }
 
   @Post()
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async create(@Body() dto: SaveLandlordDto) { return this.saveLandlord.execute(dto); }
 
   @Put(':id')
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async update(@Param('id') id: string, @Body() dto: SaveLandlordDto) {
     return this.saveLandlord.execute({ ...dto, id });
   }
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async remove(@Param('id') id: string) { await this.deleteLandlord.execute(id); }
 
   @Get(':propertyId/administrators')

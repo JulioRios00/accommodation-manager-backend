@@ -7,7 +7,7 @@ export class CheckoutController {
   constructor(private readonly checkoutUseCase: CheckoutUseCase) {}
 
   @Post()
-  @Roles('sysadmin', 'manager', 'administrator')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async checkout(@Body() dto: CheckoutDto, @Request() req: any) {
     return this.checkoutUseCase.execute({
       ...dto,

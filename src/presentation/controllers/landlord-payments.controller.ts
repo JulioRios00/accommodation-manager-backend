@@ -24,18 +24,18 @@ export class LandlordPaymentsController {
   }
 
   @Post()
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async create(@Body() dto: SaveLandlordPaymentDto) { return this.saveLandlordPayment.execute(dto); }
 
   @Put(':id')
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async update(@Param('id') id: string, @Body() dto: SaveLandlordPaymentDto) {
     return this.saveLandlordPayment.execute({ ...dto, id });
   }
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async remove(@Param('id') id: string) { await this.deleteLandlordPayment.execute(id); }
 
   @Post('generate-upcoming')

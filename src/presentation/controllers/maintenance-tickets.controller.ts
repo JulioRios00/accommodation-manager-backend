@@ -35,7 +35,7 @@ export class MaintenanceTicketsController {
   }
 
   @Post()
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async create(@Body() dto: SaveMaintenanceTicketDto, @Request() req: any) {
     return this.saveTicket.execute({
       ...dto,
@@ -45,18 +45,18 @@ export class MaintenanceTicketsController {
   }
 
   @Put(':id')
-  @Roles('sysadmin', 'manager', 'administrator', 'maintenance')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async update(@Param('id') id: string, @Body() dto: SaveMaintenanceTicketDto) {
     return this.saveTicket.execute({ ...dto, id });
   }
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async remove(@Param('id') id: string) { await this.deleteTicket.execute(id); }
 
   @Post(':id/activity')
-  @Roles('sysadmin', 'manager', 'administrator', 'maintenance')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async addLog(@Param('id') ticketId: string, @Body() dto: AddTicketActivityDto, @Request() req: any) {
     return this.addActivity.execute({
       ...dto,
@@ -67,7 +67,7 @@ export class MaintenanceTicketsController {
   }
 
   @Post(':id/claim')
-  @Roles('sysadmin', 'manager', 'administrator', 'maintenance')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async claim(@Param('id') ticketId: string, @Request() req: any) {
     return this.claimTicket.execute({
       ticketId,
@@ -77,7 +77,7 @@ export class MaintenanceTicketsController {
   }
 
   @Post(':id/close')
-  @Roles('sysadmin', 'manager', 'administrator', 'maintenance')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async close(@Param('id') ticketId: string, @Body() body: { resolutionNotes?: string }, @Request() req: any) {
     return this.closeTicket.execute({
       ticketId,
