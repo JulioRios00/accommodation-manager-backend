@@ -28,7 +28,14 @@ export class ClerkAuthGuard implements CanActivate {
     }
 
     try {
-      const payload = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
+      // jwtKey (the PEM public key from Clerk Dashboard → API Keys) lets verifyToken check the
+      // signature locally instead of fetching the JWKS from Clerk's API on every call — that
+      // network round-trip was intermittently failing ("Failed to resolve JWK during verification"),
+      // causing spurious 401s. Falls back to the networked secretKey path if CLERK_JWT_KEY isn't set.
+      const payload = await verifyToken(token, {
+        secretKey: process.env.CLERK_SECRET_KEY,
+        jwtKey: process.env.CLERK_JWT_KEY,
+      });
       const userId = payload.sub;
       this.logger.debug(`[auth] token verified — userId=${userId}`);
 
