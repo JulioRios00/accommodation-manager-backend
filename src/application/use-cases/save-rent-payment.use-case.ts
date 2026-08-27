@@ -1,5 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { IRentPaymentRepository, RENT_PAYMENT_REPOSITORY } from '../../domain/rent-payment/rent-payment.repository';
+import { derivePaymentStatus } from '../../domain/rent-payment/rent-payment.entity';
+import { Actor, AuditLogService } from '../services/audit-log.service';
 
 export interface SaveRentPaymentDto {
   id?: string;
@@ -18,19 +20,35 @@ export interface SaveRentPaymentDto {
 
 @Injectable()
 export class SaveRentPaymentUseCase {
-  constructor(@Inject(RENT_PAYMENT_REPOSITORY) private readonly repo: IRentPaymentRepository) {}
+  constructor(
+    @Inject(RENT_PAYMENT_REPOSITORY) private readonly repo: IRentPaymentRepository,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
-  async execute(dto: SaveRentPaymentDto) {
+  async execute(dto: SaveRentPaymentDto, actor?: Actor) {
+    let existing: Awaited<ReturnType<IRentPaymentRepository['findById']>> = null;
     if (dto.id) {
-      const existing = await this.repo.findById(dto.id);
+      existing = await this.repo.findById(dto.id);
       if (!existing) throw new NotFoundException(`RentPayment ${dto.id} not found`);
     }
-    return this.repo.save({
+    const amountPaid = dto.amountPaid ?? 0;
+    const payment = await this.repo.save({
       ...dto,
-      amountPaid: dto.amountPaid ?? 0,
+      amountPaid,
       lateStatus: dto.lateStatus ?? 'on_time',
-      paymentStatus: dto.paymentStatus ?? 'unpaid',
+      paymentStatus: dto.paymentStatus ?? derivePaymentStatus(amountPaid, dto.rentAmount),
       datePaid: dto.datePaid ? new Date(dto.datePaid) : null,
     } as any);
+
+    await this.auditLog.record({
+      actor,
+      action: existing ? 'update' : 'create',
+      entityType: 'RentPayment',
+      entityId: payment.id,
+      before: existing as unknown as Record<string, unknown>,
+      after: payment as unknown as Record<string, unknown>,
+    });
+
+    return payment;
   }
 }

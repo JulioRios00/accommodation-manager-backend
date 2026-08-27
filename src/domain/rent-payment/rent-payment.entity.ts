@@ -7,6 +7,14 @@ export class RentPaymentInstallment {
   createdAt: Date;
 }
 
+/** Derives payment status from amount paid vs. amount due — the single source of truth for
+ *  what "Paid" / "Partially Paid" / "Unpaid" means, used wherever amountPaid is recorded. */
+export function derivePaymentStatus(amountPaid: number, rentAmount: number): string {
+  if (amountPaid <= 0) return 'unpaid';
+  if (amountPaid < rentAmount) return 'partially_paid';
+  return 'paid';
+}
+
 export class RentPayment {
   id: string;
   residentId: string;

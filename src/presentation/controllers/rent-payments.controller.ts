@@ -5,6 +5,8 @@ import { DeleteRentPaymentUseCase } from '../../application/use-cases/delete-ren
 import { AddRentInstallmentUseCase, AddRentInstallmentDto } from '../../application/use-cases/add-rent-installment.use-case';
 import { GenerateUpcomingRentPaymentsUseCase } from '../../application/use-cases/generate-upcoming-rent-payments.use-case';
 import { Roles } from '../decorators/roles.decorator';
+import { CurrentActor } from '../decorators/current-actor.decorator';
+import { Actor } from '../../application/services/audit-log.service';
 
 @Controller('rent-payments')
 export class RentPaymentsController {
@@ -26,22 +28,22 @@ export class RentPaymentsController {
   }
 
   @Post()
-  @Roles('sysadmin', 'manager', 'administrator')
-  async create(@Body() dto: SaveRentPaymentDto) { return this.saveRentPayment.execute(dto); }
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
+  async create(@Body() dto: SaveRentPaymentDto, @CurrentActor() actor?: Actor) { return this.saveRentPayment.execute(dto, actor); }
 
   @Put(':id')
-  @Roles('sysadmin', 'manager', 'administrator')
-  async update(@Param('id') id: string, @Body() dto: SaveRentPaymentDto) {
-    return this.saveRentPayment.execute({ ...dto, id });
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
+  async update(@Param('id') id: string, @Body() dto: SaveRentPaymentDto, @CurrentActor() actor?: Actor) {
+    return this.saveRentPayment.execute({ ...dto, id }, actor);
   }
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles('sysadmin', 'manager')
-  async remove(@Param('id') id: string) { await this.deleteRentPayment.execute(id); }
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
+  async remove(@Param('id') id: string, @CurrentActor() actor?: Actor) { await this.deleteRentPayment.execute(id, actor); }
 
   @Post(':id/installments')
-  @Roles('sysadmin', 'manager', 'administrator')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async addPayment(@Param('id') rentPaymentId: string, @Body() dto: AddRentInstallmentDto) {
     return this.addInstallment.execute({ ...dto, rentPaymentId });
   }
