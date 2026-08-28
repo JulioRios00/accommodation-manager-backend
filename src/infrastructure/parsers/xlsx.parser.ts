@@ -91,7 +91,7 @@ function toBool(value: any): boolean {
 const BED_NUMBER_LETTER_FIRST_RE = /^([A-Za-z])\s*(\d+)$/;
 const BED_NUMBER_DIGIT_FIRST_RE = /^(\d+)\s*([A-Za-z])?$/;
 
-function parseBedNumber(value: any): { bedNumber: number | null; bedroomLetter: string | null; bedNumberRaw: string | null } {
+export function parseBedNumber(value: any): { bedNumber: number | null; bedroomLetter: string | null; bedNumberRaw: string | null } {
   const raw = value === null || value === undefined ? '' : String(value).trim();
   if (!raw) return { bedNumber: null, bedroomLetter: null, bedNumberRaw: null };
 

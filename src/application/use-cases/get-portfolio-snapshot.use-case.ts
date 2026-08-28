@@ -3,13 +3,13 @@ import { IBookingRepository, BOOKING_REPOSITORY } from '../../domain/booking/boo
 import { IPropertyRepository, PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
 import { IBedRateHistoryRepository, BED_RATE_HISTORY_REPOSITORY } from '../../domain/bed-rate-history/bed-rate-history.repository';
 import { BookingBed } from '../../domain/booking/booking.entity';
+import { bedroomLetterFromName } from '../../domain/bed/bed-code.util';
 
 // Under the letter-first numbering convention (A1, B1, ...), bed number resets per bedroom,
 // so the bedroom letter must be included to keep the code unique/readable (matches the
 // frontend's lib/bedCode.ts).
 function bedCode(bed: BookingBed): string {
-  const letter = bed.bedroomName?.replace(/^Bedroom\s+/i, '') ?? '';
-  return `${bed.propertyCode ?? ''}-${letter}${bed.bedNumber}`;
+  return `${bed.propertyCode ?? ''}-${bedroomLetterFromName(bed.bedroomName) ?? ''}${bed.bedNumber}`;
 }
 
 export interface PortfolioSnapshotRow {

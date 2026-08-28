@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { parseBedNumber } from './xlsx.parser';
 
 export interface ParsedDepositRow {
   transactionDate: Date | null;
@@ -6,6 +7,9 @@ export interface ParsedDepositRow {
   company: string | null;
   propertyCode: string;
   bedNumber: number | null;
+  /** Bedroom letter from a bed cell like "A1" — needed to disambiguate beds whose number
+   *  resets per bedroom (A1 and B1 both have bedNumber 1). */
+  bedroomLetter: string | null;
   residentName: string;
   checkoutDate: Date | null;
   depositAmount: number;
@@ -66,12 +70,15 @@ export function parseDeposits(buffer: Buffer): ParsedDepositRow[] {
     const residentName = toStr(r[5]);
     if (!propertyCode || !residentName) continue;
 
+    const { bedNumber, bedroomLetter } = parseBedNumber(r[4]);
+
     result.push({
       transactionDate: toDate(r[0]),
       transactionType: mapTransactionType(toStr(r[1])),
       company: toStr(r[2]),
       propertyCode,
-      bedNumber: toNum(r[4]),
+      bedNumber,
+      bedroomLetter,
       residentName,
       checkoutDate: toDate(r[6]),
       depositAmount: toNum(r[7]) ?? 0,
