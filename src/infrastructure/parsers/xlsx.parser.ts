@@ -82,16 +82,30 @@ function toBool(value: any): boolean {
   return String(value).toLowerCase() === 'yes' || value === true || value === 1;
 }
 
-// Bed number column accepts either a plain number ("12") or a number with a trailing
-// bedroom letter ("12B"), where the letter groups beds sharing a physical bedroom.
-const BED_NUMBER_RE = /^(\d+)\s*([A-Za-z])?$/;
+// Bed number column accepts two conventions:
+//  - Letter-first ("A1", "B1"): the letter is the bedroom, the number is that bed's position
+//    within the bedroom — NOT unique across the whole property (A1 and B1 are different beds).
+//  - Digit-first ("12" or "12B", the older convention): the number is unique across the whole
+//    property; an optional trailing letter groups beds sharing a physical bedroom.
+// Letter-first is tried first since it's the current format.
+const BED_NUMBER_LETTER_FIRST_RE = /^([A-Za-z])\s*(\d+)$/;
+const BED_NUMBER_DIGIT_FIRST_RE = /^(\d+)\s*([A-Za-z])?$/;
 
 function parseBedNumber(value: any): { bedNumber: number | null; bedroomLetter: string | null; bedNumberRaw: string | null } {
   const raw = value === null || value === undefined ? '' : String(value).trim();
   if (!raw) return { bedNumber: null, bedroomLetter: null, bedNumberRaw: null };
-  const match = raw.match(BED_NUMBER_RE);
-  if (!match) return { bedNumber: null, bedroomLetter: null, bedNumberRaw: raw };
-  return { bedNumber: Number(match[1]), bedroomLetter: match[2] ? match[2].toUpperCase() : null, bedNumberRaw: raw };
+
+  const letterFirst = raw.match(BED_NUMBER_LETTER_FIRST_RE);
+  if (letterFirst) {
+    return { bedNumber: Number(letterFirst[2]), bedroomLetter: letterFirst[1].toUpperCase(), bedNumberRaw: raw };
+  }
+
+  const digitFirst = raw.match(BED_NUMBER_DIGIT_FIRST_RE);
+  if (digitFirst) {
+    return { bedNumber: Number(digitFirst[1]), bedroomLetter: digitFirst[2] ? digitFirst[2].toUpperCase() : null, bedNumberRaw: raw };
+  }
+
+  return { bedNumber: null, bedroomLetter: null, bedNumberRaw: raw };
 }
 
 export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', required: boolean = true): ParsedRow[] {

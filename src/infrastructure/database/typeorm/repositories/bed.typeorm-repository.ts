@@ -43,8 +43,14 @@ export class BedTypeOrmRepository implements IBedRepository {
   }
 
   async upsertByPropertyAndNumber(bed: Partial<Bed>): Promise<Bed> {
+    // Bed number alone is only unique property-wide for the older numbering convention.
+    // Under the letter-first convention (A1, B1, ...) it resets per bedroom, so two
+    // different beds can share the same number — disambiguate by bedroom when we have one,
+    // instead of overwriting whichever bed the number matched first.
     let entity = await this.repo.findOne({
-      where: { propertyId: bed.propertyId, bedNumber: bed.bedNumber },
+      where: bed.bedroomId
+        ? { propertyId: bed.propertyId, bedroomId: bed.bedroomId, bedNumber: bed.bedNumber }
+        : { propertyId: bed.propertyId, bedNumber: bed.bedNumber },
     });
     if (entity) {
       // Mirrors PropertyTypeOrmRepository.upsertByCode: reactivate a soft-deleted bed

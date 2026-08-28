@@ -16,7 +16,7 @@ export class BookingTypeOrmRepository implements IBookingRepository {
     const where = status ? { status, active: true } : { active: true };
     const entities = await this.repo.find({
       where,
-      relations: ['bed', 'bed.property', 'resident'],
+      relations: ['bed', 'bed.property', 'bed.bedroom', 'resident'],
     });
     return entities.map(this.toDomain);
   }
@@ -24,7 +24,7 @@ export class BookingTypeOrmRepository implements IBookingRepository {
   async findById(id: string): Promise<Booking | null> {
     const entity = await this.repo.findOne({
       where: { id, active: true },
-      relations: ['bed', 'bed.property', 'resident'],
+      relations: ['bed', 'bed.property', 'bed.bedroom', 'resident'],
     });
     return entity ? this.toDomain(entity) : null;
   }
@@ -40,7 +40,7 @@ export class BookingTypeOrmRepository implements IBookingRepository {
   async findActiveByResidentId(residentId: string): Promise<Booking | null> {
     const entity = await this.repo.findOne({
       where: { residentId, status: 'active', active: true },
-      relations: ['bed', 'bed.property'],
+      relations: ['bed', 'bed.property', 'bed.bedroom'],
     });
     return entity ? this.toDomain(entity) : null;
   }
@@ -48,7 +48,7 @@ export class BookingTypeOrmRepository implements IBookingRepository {
   async findAllActiveByResidentId(residentId: string): Promise<Booking[]> {
     const entities = await this.repo.find({
       where: { residentId, status: 'active', active: true },
-      relations: ['bed', 'bed.property'],
+      relations: ['bed', 'bed.property', 'bed.bedroom'],
     });
     return entities.map(this.toDomain);
   }
@@ -102,6 +102,7 @@ export class BookingTypeOrmRepository implements IBookingRepository {
           bedNumber: entity.bed.bedNumber,
           name: entity.bed.name ?? null,
           bedroomType: entity.bed.bedroomType,
+          bedroomName: entity.bed.bedroom?.name ?? null,
           propertyId: entity.bed.propertyId,
           propertyCode: entity.bed.property?.code ?? null,
         }

@@ -2,6 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import { IBookingRepository, BOOKING_REPOSITORY } from '../../domain/booking/booking.repository';
 import { IPropertyRepository, PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
 import { IBedRateHistoryRepository, BED_RATE_HISTORY_REPOSITORY } from '../../domain/bed-rate-history/bed-rate-history.repository';
+import { BookingBed } from '../../domain/booking/booking.entity';
+
+// Under the letter-first numbering convention (A1, B1, ...), bed number resets per bedroom,
+// so the bedroom letter must be included to keep the code unique/readable (matches the
+// frontend's lib/bedCode.ts).
+function bedCode(bed: BookingBed): string {
+  const letter = bed.bedroomName?.replace(/^Bedroom\s+/i, '') ?? '';
+  return `${bed.propertyCode ?? ''}-${letter}${bed.bedNumber}`;
+}
 
 export interface PortfolioSnapshotRow {
   propertyCode: string;
@@ -51,7 +60,7 @@ export class GetPortfolioSnapshotUseCase {
       return {
         propertyCode: b.bed?.propertyCode ?? '—',
         propertyLeaseActive: property ? leaseActive : true, // no lease dates on file — treat as active
-        bedCode: b.bed ? `${b.bed.propertyCode ?? ''}-${b.bed.bedNumber}` : '—',
+        bedCode: b.bed ? bedCode(b.bed) : '—',
         residentName: b.resident?.fullName ?? '—',
         checkInDate: b.checkInDate,
         endDate: b.checkOutDate ?? b.contractEndDate,
