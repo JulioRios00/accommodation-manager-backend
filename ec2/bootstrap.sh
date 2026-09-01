@@ -36,6 +36,15 @@ sudo ln -sf /etc/nginx/sites-available/accommodation-manager /etc/nginx/sites-en
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 
+echo "==> Setting up memory monitor (cron + logrotate)"
+chmod +x /home/ubuntu/app/ec2/memory-monitor.sh /home/ubuntu/app/ec2/memory-report.sh
+mkdir -p /home/ubuntu/app/logs
+sudo cp /home/ubuntu/app/ec2/memory-monitor-logrotate.conf /etc/logrotate.d/memory-monitor
+(crontab -l 2>/dev/null | grep -v memory-monitor.sh; echo "*/5 * * * * /home/ubuntu/app/ec2/memory-monitor.sh >> /home/ubuntu/app/logs/memory-monitor-cron.log 2>&1") | crontab -
+echo ">>> Memory monitor installed: runs every 5 min, logs to /home/ubuntu/app/logs/memory-monitor.log"
+echo ">>> Sends a Sentry alert automatically once SENTRY_DSN is set in .env (below) and usage crosses 85%"
+echo ">>> Run /home/ubuntu/app/ec2/memory-report.sh anytime for a usage trend summary"
+
 echo "==> Setting up environment file"
 echo ">>> IMPORTANT: Edit /home/ubuntu/app/.env before starting PM2"
 echo ">>> Copy the contents from .env.example and fill in real values"
