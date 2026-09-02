@@ -206,6 +206,7 @@ export class ImportXlsxUseCase {
   ): Promise<{ property: Property; bed: Bed }> {
     const property = await this.propertyRepo.upsertByCode({
       code: row.code,
+      eirCode: row.eirCode,
       bu: row.bu,
       area: row.area,
       fullAddress: row.fullAddress,

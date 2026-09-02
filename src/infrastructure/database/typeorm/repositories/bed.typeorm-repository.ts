@@ -55,7 +55,11 @@ export class BedTypeOrmRepository implements IBedRepository {
     if (entity) {
       // Mirrors PropertyTypeOrmRepository.upsertByCode: reactivate a soft-deleted bed
       // instead of leaving it hidden behind an updated-but-inactive row.
-      Object.assign(entity, bed, { active: true });
+      // Historical rows (e.g. the CheckedOut sheet) use the old digit-only bed numbering
+      // with no letter, so they carry bedroomId: null — don't let that null out a bedroom
+      // assignment a more informative row (Control sheet) already made for this bed.
+      const bedroomId = bed.bedroomId ?? entity.bedroomId;
+      Object.assign(entity, bed, { bedroomId, active: true });
     } else {
       entity = this.repo.create({ ...bed, active: true } as DeepPartial<BedOrmEntity>);
     }

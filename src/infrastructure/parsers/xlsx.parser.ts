@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 export interface ParsedRow {
   // Property
   code: string;
+  eirCode: string | null;
   bu: string;
   area: string | null;
   fullAddress: string | null;
@@ -82,6 +83,22 @@ function toBool(value: any): boolean {
   return String(value).toLowerCase() === 'yes' || value === true || value === 1;
 }
 
+// The Code column now carries "EIRCODE-PROPERTYCODE" (e.g. "D07E9XP-61RR") instead of just
+// the property code — split off the leading Eircode so it lands in its own field instead of
+// polluting the property code. Falls back to treating the whole value as the code (no Eircode)
+// for older sheets/rows that don't follow the new convention.
+function splitCodeAndEirCode(raw: string): { code: string; eirCode: string | null } {
+  const cleaned = raw.replace(/ /g, ' ').trim();  // normalize non-breaking spaces
+  const dashIndex = cleaned.indexOf('-');
+  if (dashIndex === -1) return { code: cleaned, eirCode: null };
+
+  const eirCode = cleaned.slice(0, dashIndex).replace(/\s+/g, '').toUpperCase();
+  const code = cleaned.slice(dashIndex + 1).trim();
+  if (!eirCode || !code) return { code: cleaned, eirCode: null };
+
+  return { code, eirCode };
+}
+
 // Bed number column accepts two conventions:
 //  - Letter-first ("A1", "B1"): the letter is the bedroom, the number is that bed's position
 //    within the bedroom — NOT unique across the whole property (A1 and B1 are different beds).
@@ -124,6 +141,7 @@ export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', require
   // merged/blank on the rest of its bed rows — so carry the last-seen values forward.
   let lastProperty: {
     code: string;
+    eirCode: string | null;
     bu: string;
     area: string | null;
     fullAddress: string | null;
@@ -142,8 +160,10 @@ export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', require
 
     const rowCode = toStr(r[0]);
     if (rowCode) {
+      const { code, eirCode } = splitCodeAndEirCode(rowCode);
       lastProperty = {
-        code: rowCode,
+        code,
+        eirCode,
         bu: toStr(r[1]) ?? '',
         area: toStr(r[2]),
         fullAddress: toStr(r[3]),
