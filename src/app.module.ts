@@ -120,7 +120,13 @@ import { PaymentGenerationCron } from './application/services/payment-generation
         transport: process.env.NODE_ENV !== 'production'
           ? { target: 'pino-pretty', options: { colorize: true, singleLine: true } }
           : undefined,
-        redact: ['req.headers.authorization'],
+        redact: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          'req.headers["x-clerk-auth-token"]',
+          'req.headers["x-clerk-auth-signature"]',
+          'req.headers["x-vercel-proxy-signature"]',
+        ],
       },
     }),
     DatabaseModule,
