@@ -101,6 +101,7 @@ import { PropertySpacesController } from './presentation/controllers/property-sp
 import { GetRolePermissionsUseCase } from './application/use-cases/get-role-permissions.use-case';
 import { GetAuditLogsUseCase } from './application/use-cases/get-audit-logs.use-case';
 import { AuditLogService } from './application/services/audit-log.service';
+import { ImportJobsService } from './application/services/import-jobs.service';
 import { AuditLogsController } from './presentation/controllers/audit-logs.controller';
 import { TransitionExpiredBookingsUseCase } from './application/use-cases/transition-expired-bookings.use-case';
 import { SyncPropertyLeaseStatusUseCase } from './application/use-cases/sync-property-lease-status.use-case';
@@ -146,6 +147,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     { provide: APP_FILTER, useClass: QueryFailedFilter },
     { provide: APP_GUARD, useClass: ClerkAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    ImportJobsService,
     ImportXlsxUseCase, ImportBillsUseCase, ImportMaintenanceUseCase, ImportDepositsUseCase, ImportLandlordPaymentsUseCase, ImportResidentPaymentsUseCase, ImportResidentsToClerkUseCase,
     GetDashboardStatsUseCase,
     GetPropertiesUseCase, GetBedsUseCase, GetResidentsUseCase, GetBookingsUseCase,

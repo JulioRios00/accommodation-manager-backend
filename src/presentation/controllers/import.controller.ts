@@ -1,5 +1,6 @@
-import { Controller, Post, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Logger, NotFoundException, Param, Post, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ImportJobsService } from '../../application/services/import-jobs.service';
 import { ImportXlsxUseCase } from '../../application/use-cases/import-xlsx.use-case';
 import { ImportBillsUseCase } from '../../application/use-cases/import-bills.use-case';
 import { ImportMaintenanceUseCase } from '../../application/use-cases/import-maintenance.use-case';
@@ -32,7 +33,10 @@ const summarizeSkips = (skipReasons: ImportSkipReason[]): string => {
 
 @Controller('import')
 export class ImportController {
+  private readonly logger = new Logger(ImportController.name);
+
   constructor(
+    private readonly importJobs: ImportJobsService,
     private readonly importXlsxUseCase: ImportXlsxUseCase,
     private readonly importBillsUseCase: ImportBillsUseCase,
     private readonly importMaintenanceUseCase: ImportMaintenanceUseCase,
@@ -42,17 +46,41 @@ export class ImportController {
     private readonly importResidentsToClerkUseCase: ImportResidentsToClerkUseCase,
   ) {}
 
+  // The full Control + CheckedOut sheet can run to thousands of rows, each needing several
+  // sequential DB round trips — that can take minutes, well past what any proxy in front of
+  // this API (nginx, Vercel's rewrite, etc.) will hold a request open for. So this endpoint
+  // kicks the import off in the background and returns a job id immediately; the frontend
+  // polls GET /import/status/:jobId instead of waiting on this response.
   @Post()
   @Roles('sysadmin', 'manager')
   @UseInterceptors(FileInterceptor('file'))
-  async importAccommodation(@UploadedFile() file: Express.Multer.File) {
+  importAccommodation(@UploadedFile() file: Express.Multer.File) {
     fileGuard(file);
-    const result = await this.importXlsxUseCase.execute(file.buffer);
-    const skipNote = result.skipped ? ` — ${summarizeSkips(result.skipReasons)}` : '';
-    return {
-      message: `Imported ${result.imported} beds, ${result.historicalImported} historical (checked-out) bookings (${result.skipped} skipped${skipNote})`,
-      ...result,
-    };
+    const job = this.importJobs.create();
+
+    this.importXlsxUseCase
+      .execute(file.buffer)
+      .then((result) => {
+        const skipNote = result.skipped ? ` — ${summarizeSkips(result.skipReasons)}` : '';
+        this.importJobs.complete(job.id, {
+          message: `Imported ${result.imported} beds, ${result.historicalImported} historical (checked-out) bookings (${result.skipped} skipped${skipNote})`,
+          ...result,
+        });
+      })
+      .catch((err) => {
+        this.logger.error(`[import] job ${job.id} failed: ${err?.message}`, err?.stack);
+        this.importJobs.fail(job.id, err?.message ?? 'Import failed');
+      });
+
+    return { jobId: job.id };
+  }
+
+  @Get('status/:jobId')
+  @Roles('sysadmin', 'manager')
+  getImportStatus(@Param('jobId') jobId: string) {
+    const job = this.importJobs.get(jobId);
+    if (!job) throw new NotFoundException('Import job not found');
+    return job;
   }
 
   @Post('bills')
