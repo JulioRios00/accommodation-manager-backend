@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { parseXlsx, ParsedRow } from '../../infrastructure/parsers/xlsx.parser';
+import { parseXlsx, parsePropertyStatuses, ParsedRow } from '../../infrastructure/parsers/xlsx.parser';
 import { Property } from '../../domain/property/property.entity';
 import { Bed } from '../../domain/bed/bed.entity';
 import { IPropertyRepository, PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
@@ -31,6 +31,7 @@ export class ImportXlsxUseCase {
 
   async execute(buffer: Buffer): Promise<{ imported: number; historicalImported: number; skipped: number; skipReasons: ImportSkipReason[] }> {
     const rows = parseXlsx(buffer);
+    const propertyStatuses = parsePropertyStatuses(buffer);
     let imported = 0;
     let skipped = 0;
     const skipReasons: ImportSkipReason[] = [];
@@ -53,7 +54,7 @@ export class ImportXlsxUseCase {
         continue;
       }
 
-      const { bed } = await this.upsertPropertyAndBed(row, bedroomCache);
+      const { bed } = await this.upsertPropertyAndBed(row, bedroomCache, propertyStatuses);
 
       // Clear existing bookings for this bed before re-importing
       await this.bookingRepo.deleteByBedId(bed.id);
@@ -129,7 +130,7 @@ export class ImportXlsxUseCase {
       imported++;
     }
 
-    const historicalImported = await this.importCheckedOut(buffer, bedroomCache, skip);
+    const historicalImported = await this.importCheckedOut(buffer, bedroomCache, propertyStatuses, skip);
 
     return { imported, historicalImported, skipped, skipReasons };
   }
@@ -141,6 +142,7 @@ export class ImportXlsxUseCase {
   private async importCheckedOut(
     buffer: Buffer,
     bedroomCache: Map<string, string>,
+    propertyStatuses: Map<string, boolean>,
     skip: (identifier: string, reason: string) => void,
   ): Promise<number> {
     const rows = parseXlsx(buffer, 'CheckedOut', false);
@@ -157,7 +159,7 @@ export class ImportXlsxUseCase {
         continue;
       }
 
-      const { bed } = await this.upsertPropertyAndBed(row, bedroomCache);
+      const { bed } = await this.upsertPropertyAndBed(row, bedroomCache, propertyStatuses);
 
       const existingBookings = await this.bookingRepo.findByBedId(bed.id);
       const alreadyImported = existingBookings.some(
@@ -203,6 +205,7 @@ export class ImportXlsxUseCase {
   private async upsertPropertyAndBed(
     row: ParsedRow & { bedNumber: number },
     bedroomCache: Map<string, string>,
+    propertyStatuses: Map<string, boolean>,
   ): Promise<{ property: Property; bed: Bed }> {
     const property = await this.propertyRepo.upsertByCode({
       code: row.code,
@@ -215,6 +218,9 @@ export class ImportXlsxUseCase {
       fobCount: row.fobCount,
       electricityStatus: row.electricityStatus,
       gasStatus: row.gasStatus,
+      // Falls back to the prior "always reactivate on import" behavior when the sheet
+      // doesn't cover this property (sheet missing, or code not listed in it yet).
+      active: propertyStatuses.get(row.code) ?? true,
     });
 
     const bedroomId = row.bedroomLetter

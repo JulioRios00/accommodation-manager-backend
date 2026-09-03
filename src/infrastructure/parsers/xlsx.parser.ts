@@ -222,3 +222,31 @@ export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', require
 
   return result;
 }
+
+// The "Properties Mach" sheet carries one row per property (Code, Address, Area, Company,
+// PropertyStatus) — PropertyStatus is "Active"/"Inactive" and is the source of truth for
+// whether a property should show as active. Returns a code -> active map; missing/absent
+// sheet or blank status means "don't touch the flag" for that property (map has no entry).
+export function parsePropertyStatuses(buffer: Buffer, sheetName: string = 'Properties Mach'): Map<string, boolean> {
+  const statuses = new Map<string, boolean>();
+  const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+  const ws = wb.Sheets[sheetName];
+  if (!ws) return statuses;
+
+  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+
+  // Data starts at row index 1 (row 2 in Excel, 0-indexed) — single header row on this sheet.
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r) continue;
+
+    const rawCode = toStr(r[0]);
+    const status = toStr(r[4]);
+    if (!rawCode || !status) continue;
+
+    const { code } = splitCodeAndEirCode(rawCode);
+    statuses.set(code, status.toLowerCase() === 'active');
+  }
+
+  return statuses;
+}

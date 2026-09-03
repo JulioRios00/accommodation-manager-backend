@@ -13,12 +13,14 @@ export class GetDashboardStatsUseCase {
   ) {}
 
   async execute(): Promise<DashboardStatsDto> {
-    const [properties, beds, activeBookings, upcomingBookings] = await Promise.all([
-      this.propertyRepo.findAll(),
+    const [allProperties, beds, activeBookings, upcomingBookings] = await Promise.all([
+      this.propertyRepo.findAll(true),
       this.bedRepo.findAll(),
       this.bookingRepo.findAll('active'),
       this.bookingRepo.findAll('upcoming'),
     ]);
+    const properties = allProperties.filter((p) => p.active);
+    const inactiveProperties = allProperties.length - properties.length;
 
     const occupiedBedIds = new Set(activeBookings.map((b) => b.bedId));
     const occupiedBeds = occupiedBedIds.size;
@@ -46,6 +48,7 @@ export class GetDashboardStatsUseCase {
 
     return {
       totalProperties: properties.length,
+      inactiveProperties,
       totalBeds,
       occupiedBeds,
       availableBeds,
