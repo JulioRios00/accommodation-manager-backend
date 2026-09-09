@@ -36,6 +36,7 @@
     "@types/express": "^5.0.0",
     "@types/multer": "^2.1.0",
     "@types/node": "^20.19.43",
+    "@types/pdfkit": "^0.17.6",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "exceljs": "^4.4.0",
@@ -57,7 +58,6 @@
   "devDependencies": {
     "@nestjs/testing": "^11.1.27",
     "@types/jest": "^29.5.2",
-    "@types/pdfkit": "^0.17.6",
     "@types/supertest": "^6.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
