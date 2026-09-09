@@ -10,6 +10,13 @@ import { LoggerModule } from 'nestjs-pino';
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { QueryFailedFilter } from './presentation/filters/query-failed.filter';
 import { DatabaseModule } from './infrastructure/database/database.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { PropertyOrmEntity } from './infrastructure/database/typeorm/entities/property.orm-entity';
+import { BedOrmEntity } from './infrastructure/database/typeorm/entities/bed.orm-entity';
+import { ResidentOrmEntity } from './infrastructure/database/typeorm/entities/resident.orm-entity';
+import { BookingOrmEntity } from './infrastructure/database/typeorm/entities/booking.orm-entity';
+import { MaintenanceTicketOrmEntity } from './infrastructure/database/typeorm/entities/maintenance-ticket.orm-entity';
+import { LandlordOrmEntity } from './infrastructure/database/typeorm/entities/landlord.orm-entity';
 
 import { ImportController } from './presentation/controllers/import.controller';
 import { DashboardController } from './presentation/controllers/dashboard.controller';
@@ -29,6 +36,7 @@ import { RentPaymentsController } from './presentation/controllers/rent-payments
 import { LandlordPaymentsController } from './presentation/controllers/landlord-payments.controller';
 import { DepositTransactionsController } from './presentation/controllers/deposit-transactions.controller';
 import { ReportsController } from './presentation/controllers/reports.controller';
+import { CustomReportsController } from './presentation/controllers/custom-reports.controller';
 import { CompaniesController } from './presentation/controllers/companies.controller';
 import { BedroomsController } from './presentation/controllers/bedrooms.controller';
 import { UsersController } from './presentation/controllers/users.controller';
@@ -84,6 +92,14 @@ import { SaveDepositTransactionUseCase } from './application/use-cases/save-depo
 import { DeleteDepositTransactionUseCase } from './application/use-cases/delete-deposit-transaction.use-case';
 import { GetDelinquencyReportUseCase } from './application/use-cases/get-delinquency-report.use-case';
 import { GetPortfolioSnapshotUseCase } from './application/use-cases/get-portfolio-snapshot.use-case';
+import { ReportRegistryService } from './application/services/report-registry.service';
+import { ReportQueryService } from './application/services/report-query.service';
+import { XlsxReportExporterService } from './application/services/xlsx-report-exporter.service';
+import { PdfReportExporterService } from './application/services/pdf-report-exporter.service';
+import { GetReportEntitiesUseCase } from './application/use-cases/get-report-entities.use-case';
+import { GetReportEntityFieldsUseCase } from './application/use-cases/get-report-entity-fields.use-case';
+import { PreviewCustomReportUseCase } from './application/use-cases/preview-custom-report.use-case';
+import { ExportCustomReportUseCase } from './application/use-cases/export-custom-report.use-case';
 import { GetCompaniesUseCase } from './application/use-cases/get-companies.use-case';
 import { SaveCompanyUseCase } from './application/use-cases/save-company.use-case';
 import { DeleteCompanyUseCase } from './application/use-cases/delete-company.use-case';
@@ -131,6 +147,9 @@ import { PaymentGenerationCron } from './application/services/payment-generation
       },
     }),
     DatabaseModule,
+    // Raw repositories for the Custom Report Builder's generic query engine — bypasses the
+    // per-feature domain-repository abstraction on purpose, isolated to this one module.
+    TypeOrmModule.forFeature([PropertyOrmEntity, BedOrmEntity, ResidentOrmEntity, BookingOrmEntity, MaintenanceTicketOrmEntity, LandlordOrmEntity]),
     TerminusModule,
     ScheduleModule.forRoot(),
   ],
@@ -139,7 +158,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     ResidentsController, BookingsController, HealthController,
     LandlordsController, ServiceProvidersController, MaintenanceTicketsController, PortalController,
     KeyLogsController, CheckoutController, RentPaymentsController, LandlordPaymentsController,
-    DepositTransactionsController, ReportsController, CompaniesController, BedroomsController,
+    DepositTransactionsController, ReportsController, CustomReportsController, CompaniesController, BedroomsController,
     PropertySpacesController, UsersController, RolePermissionsController, AuditLogsController,
   ],
   providers: [
@@ -163,6 +182,8 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     GetLandlordPaymentsUseCase, SaveLandlordPaymentUseCase, DeleteLandlordPaymentUseCase,
     GetDepositTransactionsUseCase, SaveDepositTransactionUseCase, DeleteDepositTransactionUseCase,
     GetDelinquencyReportUseCase, GetPortfolioSnapshotUseCase,
+    ReportRegistryService, ReportQueryService, XlsxReportExporterService, PdfReportExporterService,
+    GetReportEntitiesUseCase, GetReportEntityFieldsUseCase, PreviewCustomReportUseCase, ExportCustomReportUseCase,
     GetCompaniesUseCase, SaveCompanyUseCase, DeleteCompanyUseCase,
     GetBedroomsUseCase, SaveBedroomUseCase, DeleteBedroomUseCase,
     GetPropertySpacesUseCase, SavePropertySpaceUseCase, DeletePropertySpaceUseCase,

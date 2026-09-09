@@ -18,6 +18,7 @@ export const SECTIONS = [
   'Key Log',
   'Payments',
   'Reports',
+  'Custom Reports',
   'Companies',
   'Import Data',
   'User Management',
