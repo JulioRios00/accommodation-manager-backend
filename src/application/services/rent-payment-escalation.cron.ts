@@ -22,6 +22,7 @@ export class RentPaymentEscalationCron {
       const result = await this.escalateOverduePayments.execute();
       this.logger.log(
         `Daily overdue escalation: ${result.d1Sent} D+1 reminder(s), ${result.d4Sent} D+4 notice(s) sent` +
+        (result.d1Failed || result.d4Failed ? `, ${result.d1Failed + result.d4Failed} failed (see Activity Log)` : '') +
         (result.skippedNoEmail ? `, ${result.skippedNoEmail} skipped (no resident email)` : ''),
       );
     } catch (err) {
