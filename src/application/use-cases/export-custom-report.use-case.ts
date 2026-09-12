@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { ReportQueryService } from '../services/report-query.service';
 import { ReportRegistryService } from '../services/report-registry.service';
 import { XlsxReportExporterService } from '../services/xlsx-report-exporter.service';
@@ -41,7 +42,10 @@ export class ExportCustomReportUseCase {
       actor,
       action: 'export',
       entityType: 'CustomReport',
-      entityId: request.entity,
+      // entityId is UUID-typed and a report export isn't tied to one row — a real random id
+      // keeps the write valid (a non-UUID string here silently fails the insert, which
+      // AuditLogService swallows by design). The actual entity key is in `after.entity` below.
+      entityId: randomUUID(),
       before: null,
       after: {
         entity: request.entity,
