@@ -7,6 +7,7 @@ import { GenerateUpcomingRentPaymentsUseCase } from '../../application/use-cases
 import { GetReceivablesLedgerUseCase } from '../../application/use-cases/get-receivables-ledger.use-case';
 import { MarkRentPaymentReceivedUseCase } from '../../application/use-cases/mark-rent-payment-received.use-case';
 import { Roles } from '../decorators/roles.decorator';
+import { RequireFeatureFlag } from '../decorators/require-feature-flag.decorator';
 import { CurrentActor } from '../decorators/current-actor.decorator';
 import { Actor } from '../../application/services/audit-log.service';
 
@@ -23,12 +24,14 @@ export class RentPaymentsController {
   ) {}
 
   @Get('ledger')
+  @RequireFeatureFlag('receivables_ledger')
   async ledger() {
     return this.getReceivablesLedger.execute();
   }
 
   @Post(':id/mark-received')
   @Roles('sysadmin', 'manager', 'administrator', 'staff')
+  @RequireFeatureFlag('receivables_ledger')
   async markAsReceived(@Param('id') id: string, @CurrentActor() actor?: Actor) {
     return this.markReceived.execute(id, actor);
   }
