@@ -1,8 +1,12 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, Request } from '@nestjs/common';
 import { GetDepositTransactionsUseCase } from '../../application/use-cases/get-deposit-transactions.use-case';
 import { SaveDepositTransactionUseCase, SaveDepositTransactionDto } from '../../application/use-cases/save-deposit-transaction.use-case';
 import { DeleteDepositTransactionUseCase } from '../../application/use-cases/delete-deposit-transaction.use-case';
+import { GetDepositRefundQueueUseCase } from '../../application/use-cases/get-deposit-refund-queue.use-case';
+import { CompleteDepositRefundUseCase } from '../../application/use-cases/complete-deposit-refund.use-case';
 import { Roles } from '../decorators/roles.decorator';
+import { CurrentActor } from '../decorators/current-actor.decorator';
+import { Actor } from '../../application/services/audit-log.service';
 
 @Controller('deposit-transactions')
 export class DepositTransactionsController {
@@ -10,7 +14,23 @@ export class DepositTransactionsController {
     private readonly getDeposits: GetDepositTransactionsUseCase,
     private readonly saveDeposit: SaveDepositTransactionUseCase,
     private readonly deleteDeposit: DeleteDepositTransactionUseCase,
+    private readonly getRefundQueue: GetDepositRefundQueueUseCase,
+    private readonly completeRefund: CompleteDepositRefundUseCase,
   ) {}
+
+  // Finance/Administration only — approximates UC-601's "Operations vs Finance" split using
+  // SAMS's existing role vocabulary (no "Operations"/"Finance" roles exist).
+  @Get('refund-queue')
+  @Roles('sysadmin', 'manager', 'administrator')
+  async refundQueue() {
+    return this.getRefundQueue.execute();
+  }
+
+  @Post(':id/complete-refund')
+  @Roles('sysadmin', 'manager', 'administrator')
+  async completeDepositRefund(@Param('id') id: string, @CurrentActor() actor: Actor | undefined, @Request() req: any) {
+    return this.completeRefund.execute(id, actor, req.auth?.metadata?.fullName ?? null);
+  }
 
   @Get()
   async findAll(

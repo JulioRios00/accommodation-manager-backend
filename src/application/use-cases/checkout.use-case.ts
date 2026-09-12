@@ -17,12 +17,19 @@ import {
   DEPOSIT_TRANSACTION_REPOSITORY,
 } from '../../domain/deposit-transaction/deposit-transaction.repository';
 import { IBedRepository, BED_REPOSITORY } from '../../domain/bed/bed.repository';
+import { RoomConditionChecklistItem } from '../../domain/checkout-record/checkout-record.entity';
+import { addBusinessDays } from '../../domain/shared/business-day.util';
+
+// D+5 business days from check-out completion (UC-601) — see business-day.util.ts for the
+// weekend-skip-only caveat (no holiday calendar exists in SAMS yet).
+const DEPOSIT_REFUND_DEADLINE_BUSINESS_DAYS = 5;
 
 export interface CheckoutDto {
   bookingId: string;
   checkoutDate: string;
   keysReturned?: boolean;
   inspectionNotes?: string | null;
+  roomConditionChecklist?: RoomConditionChecklistItem[] | null;
   depositRefundAmount?: number | null;
   refundIban?: string | null;
   proRataRentAmount?: number | null;
@@ -73,6 +80,7 @@ export class CheckoutUseCase {
       checkoutDate: new Date(dto.checkoutDate),
       keysReturned: dto.keysReturned ?? false,
       inspectionNotes: dto.inspectionNotes,
+      roomConditionChecklist: dto.roomConditionChecklist ?? null,
       depositRefundAmount: dto.depositRefundAmount,
       refundIban: dto.refundIban,
       proRataRentAmount: dto.proRataRentAmount,
@@ -85,6 +93,7 @@ export class CheckoutUseCase {
     });
 
     if (dto.depositRefundAmount && dto.residentId && dto.propertyId) {
+      const checkoutDate = new Date(dto.checkoutDate);
       await this.depositRepo.save({
         type: 'refund',
         residentId: dto.residentId,
@@ -92,13 +101,14 @@ export class CheckoutUseCase {
         propertyId: dto.propertyId,
         bedId: dto.bedId ?? null,
         residentName: dto.residentName ?? '',
-        checkoutDate: new Date(dto.checkoutDate),
+        checkoutDate,
         depositAmount: dto.depositRefundAmount,
         proRataRentAmount: dto.proRataRentAmount ?? null,
         iban: dto.refundIban ?? null,
         company: dto.company ?? null,
         comments: dto.comments ?? null,
         status: 'pending',
+        refundDueDate: addBusinessDays(checkoutDate, DEPOSIT_REFUND_DEADLINE_BUSINESS_DAYS),
       });
     }
 

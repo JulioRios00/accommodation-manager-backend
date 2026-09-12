@@ -1,4 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { RoomConditionChecklistItem } from '../../../../domain/checkout-record/checkout-record.entity';
 
 @Entity('checkout_records')
 export class CheckoutRecordOrmEntity {
@@ -7,6 +8,7 @@ export class CheckoutRecordOrmEntity {
   @Column({ type: 'date' }) checkoutDate: Date;
   @Column({ default: false }) keysReturned: boolean;
   @Column({ type: 'text', nullable: true }) inspectionNotes: string;
+  @Column({ type: 'jsonb', nullable: true }) roomConditionChecklist: RoomConditionChecklistItem[];
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true }) depositRefundAmount: number;
   @Column({ length: 50, nullable: true }) refundIban: string;
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true }) proRataRentAmount: number;
