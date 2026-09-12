@@ -19,6 +19,8 @@ export const SECTIONS = [
   'Payments',
   'Reports',
   'Custom Reports',
+  'Communication Settings',
+  'Landlord Disbursements',
   'Companies',
   'Import Data',
   'User Management',

@@ -38,6 +38,7 @@ import { DepositTransactionsController } from './presentation/controllers/deposi
 import { ReportsController } from './presentation/controllers/reports.controller';
 import { CustomReportsController } from './presentation/controllers/custom-reports.controller';
 import { CompaniesController } from './presentation/controllers/companies.controller';
+import { EmailTemplatesController } from './presentation/controllers/email-templates.controller';
 import { BedroomsController } from './presentation/controllers/bedrooms.controller';
 import { UsersController } from './presentation/controllers/users.controller';
 import { RolePermissionsController } from './presentation/controllers/role-permissions.controller';
@@ -84,9 +85,20 @@ import { GetRentPaymentsUseCase } from './application/use-cases/get-rent-payment
 import { SaveRentPaymentUseCase } from './application/use-cases/save-rent-payment.use-case';
 import { DeleteRentPaymentUseCase } from './application/use-cases/delete-rent-payment.use-case';
 import { AddRentInstallmentUseCase } from './application/use-cases/add-rent-installment.use-case';
+import { GetReceivablesLedgerUseCase } from './application/use-cases/get-receivables-ledger.use-case';
+import { MarkRentPaymentReceivedUseCase } from './application/use-cases/mark-rent-payment-received.use-case';
+import { GetEmailTemplateUseCase } from './application/use-cases/get-email-template.use-case';
+import { SaveEmailTemplateUseCase } from './application/use-cases/save-email-template.use-case';
+import { EscalateOverdueRentPaymentsUseCase } from './application/use-cases/escalate-overdue-rent-payments.use-case';
+import { EmailService } from './application/services/email.service';
+import { RentPaymentEscalationCron } from './application/services/rent-payment-escalation.cron';
 import { GetLandlordPaymentsUseCase } from './application/use-cases/get-landlord-payments.use-case';
 import { SaveLandlordPaymentUseCase } from './application/use-cases/save-landlord-payment.use-case';
 import { DeleteLandlordPaymentUseCase } from './application/use-cases/delete-landlord-payment.use-case';
+import { GetLandlordDisbursementLedgerUseCase } from './application/use-cases/get-landlord-disbursement-ledger.use-case';
+import { UpdateLandlordPaymentNotesUseCase } from './application/use-cases/update-landlord-payment-notes.use-case';
+import { MarkLandlordPaymentPaidUseCase } from './application/use-cases/mark-landlord-payment-paid.use-case';
+import { ExportLandlordDisbursementsUseCase } from './application/use-cases/export-landlord-disbursements.use-case';
 import { GetDepositTransactionsUseCase } from './application/use-cases/get-deposit-transactions.use-case';
 import { SaveDepositTransactionUseCase } from './application/use-cases/save-deposit-transaction.use-case';
 import { DeleteDepositTransactionUseCase } from './application/use-cases/delete-deposit-transaction.use-case';
@@ -158,7 +170,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     ResidentsController, BookingsController, HealthController,
     LandlordsController, ServiceProvidersController, MaintenanceTicketsController, PortalController,
     KeyLogsController, CheckoutController, RentPaymentsController, LandlordPaymentsController,
-    DepositTransactionsController, ReportsController, CustomReportsController, CompaniesController, BedroomsController,
+    DepositTransactionsController, ReportsController, CustomReportsController, EmailTemplatesController, CompaniesController, BedroomsController,
     PropertySpacesController, UsersController, RolePermissionsController, AuditLogsController,
   ],
   providers: [
@@ -179,7 +191,12 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     GetKeyLogsUseCase, SaveKeyLogUseCase, DeleteKeyLogUseCase,
     CheckoutUseCase,
     GetRentPaymentsUseCase, SaveRentPaymentUseCase, DeleteRentPaymentUseCase, AddRentInstallmentUseCase,
+    GetReceivablesLedgerUseCase, MarkRentPaymentReceivedUseCase,
+    GetEmailTemplateUseCase, SaveEmailTemplateUseCase, EscalateOverdueRentPaymentsUseCase,
+    EmailService, RentPaymentEscalationCron,
     GetLandlordPaymentsUseCase, SaveLandlordPaymentUseCase, DeleteLandlordPaymentUseCase,
+    GetLandlordDisbursementLedgerUseCase, UpdateLandlordPaymentNotesUseCase,
+    MarkLandlordPaymentPaidUseCase, ExportLandlordDisbursementsUseCase,
     GetDepositTransactionsUseCase, SaveDepositTransactionUseCase, DeleteDepositTransactionUseCase,
     GetDelinquencyReportUseCase, GetPortfolioSnapshotUseCase,
     ReportRegistryService, ReportQueryService, XlsxReportExporterService, PdfReportExporterService,

@@ -39,6 +39,7 @@ export class RentPaymentTypeOrmRepository implements IRentPaymentRepository {
     d.rentAmount = Number(e.rentAmount); d.amountPaid = Number(e.amountPaid);
     d.lateStatus = e.lateStatus; d.paymentStatus = e.paymentStatus ?? 'unpaid';
     d.datePaid = e.datePaid ?? null; d.notes = e.notes ?? null; d.installments = [];
+    d.d1ReminderSentAt = e.d1ReminderSentAt ?? null; d.d4NoticeSentAt = e.d4NoticeSentAt ?? null;
     d.active = e.active; d.createdAt = e.createdAt; d.updatedAt = e.updatedAt;
     return d;
   }

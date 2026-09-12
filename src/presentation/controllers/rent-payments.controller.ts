@@ -4,6 +4,8 @@ import { SaveRentPaymentUseCase, SaveRentPaymentDto } from '../../application/us
 import { DeleteRentPaymentUseCase } from '../../application/use-cases/delete-rent-payment.use-case';
 import { AddRentInstallmentUseCase, AddRentInstallmentDto } from '../../application/use-cases/add-rent-installment.use-case';
 import { GenerateUpcomingRentPaymentsUseCase } from '../../application/use-cases/generate-upcoming-rent-payments.use-case';
+import { GetReceivablesLedgerUseCase } from '../../application/use-cases/get-receivables-ledger.use-case';
+import { MarkRentPaymentReceivedUseCase } from '../../application/use-cases/mark-rent-payment-received.use-case';
 import { Roles } from '../decorators/roles.decorator';
 import { CurrentActor } from '../decorators/current-actor.decorator';
 import { Actor } from '../../application/services/audit-log.service';
@@ -16,7 +18,20 @@ export class RentPaymentsController {
     private readonly deleteRentPayment: DeleteRentPaymentUseCase,
     private readonly addInstallment: AddRentInstallmentUseCase,
     private readonly generateUpcoming: GenerateUpcomingRentPaymentsUseCase,
+    private readonly getReceivablesLedger: GetReceivablesLedgerUseCase,
+    private readonly markReceived: MarkRentPaymentReceivedUseCase,
   ) {}
+
+  @Get('ledger')
+  async ledger() {
+    return this.getReceivablesLedger.execute();
+  }
+
+  @Post(':id/mark-received')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff')
+  async markAsReceived(@Param('id') id: string, @CurrentActor() actor?: Actor) {
+    return this.markReceived.execute(id, actor);
+  }
 
   @Get()
   async findAll(
