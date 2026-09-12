@@ -14,6 +14,8 @@ export class RentPaymentOrmEntity {
   @Column({ length: 20, default: 'unpaid' }) paymentStatus: string;
   @Column({ type: 'date', nullable: true }) datePaid: Date;
   @Column({ type: 'text', nullable: true }) notes: string;
+  @Column({ type: 'timestamptz', nullable: true }) d1ReminderSentAt: Date;
+  @Column({ type: 'timestamptz', nullable: true }) d4NoticeSentAt: Date;
   @Column({ default: true }) active: boolean;
   @CreateDateColumn() createdAt: Date;
   @UpdateDateColumn() updatedAt: Date;

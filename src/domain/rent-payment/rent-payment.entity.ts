@@ -29,6 +29,10 @@ export class RentPayment {
   datePaid: Date | null;
   notes: string | null;
   installments: RentPaymentInstallment[];
+  /** Escalation idempotency guard + audit trail — null until that reminder has actually
+   *  gone out for this invoice. See RentPaymentEscalationCron. */
+  d1ReminderSentAt: Date | null;
+  d4NoticeSentAt: Date | null;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
