@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { MetricsMiddleware } from './presentation/middleware/metrics.middleware';
 import { ClerkAuthGuard } from './presentation/guards/clerk-auth.guard';
 import { RolesGuard } from './presentation/guards/roles.guard';
+import { FeatureFlagGuard } from './presentation/guards/feature-flag.guard';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TerminusModule } from '@nestjs/terminus';
@@ -39,6 +40,7 @@ import { ReportsController } from './presentation/controllers/reports.controller
 import { CustomReportsController } from './presentation/controllers/custom-reports.controller';
 import { CompaniesController } from './presentation/controllers/companies.controller';
 import { EmailTemplatesController } from './presentation/controllers/email-templates.controller';
+import { FeatureFlagsController } from './presentation/controllers/feature-flags.controller';
 import { BedroomsController } from './presentation/controllers/bedrooms.controller';
 import { UsersController } from './presentation/controllers/users.controller';
 import { RolePermissionsController } from './presentation/controllers/role-permissions.controller';
@@ -86,6 +88,7 @@ import { SaveRentPaymentUseCase } from './application/use-cases/save-rent-paymen
 import { DeleteRentPaymentUseCase } from './application/use-cases/delete-rent-payment.use-case';
 import { AddRentInstallmentUseCase } from './application/use-cases/add-rent-installment.use-case';
 import { GetReceivablesLedgerUseCase } from './application/use-cases/get-receivables-ledger.use-case';
+import { FeatureFlagService } from './application/services/feature-flag.service';
 import { MarkRentPaymentReceivedUseCase } from './application/use-cases/mark-rent-payment-received.use-case';
 import { GetEmailTemplateUseCase } from './application/use-cases/get-email-template.use-case';
 import { SaveEmailTemplateUseCase } from './application/use-cases/save-email-template.use-case';
@@ -170,7 +173,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     ResidentsController, BookingsController, HealthController,
     LandlordsController, ServiceProvidersController, MaintenanceTicketsController, PortalController,
     KeyLogsController, CheckoutController, RentPaymentsController, LandlordPaymentsController,
-    DepositTransactionsController, ReportsController, CustomReportsController, EmailTemplatesController, CompaniesController, BedroomsController,
+    DepositTransactionsController, ReportsController, CustomReportsController, EmailTemplatesController, FeatureFlagsController, CompaniesController, BedroomsController,
     PropertySpacesController, UsersController, RolePermissionsController, AuditLogsController,
   ],
   providers: [
@@ -178,6 +181,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     { provide: APP_FILTER, useClass: QueryFailedFilter },
     { provide: APP_GUARD, useClass: ClerkAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: FeatureFlagGuard },
     ImportJobsService,
     ImportXlsxUseCase, ImportBillsUseCase, ImportMaintenanceUseCase, ImportDepositsUseCase, ImportLandlordPaymentsUseCase, ImportResidentPaymentsUseCase, ImportResidentsToClerkUseCase,
     GetDashboardStatsUseCase,
@@ -191,6 +195,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     GetKeyLogsUseCase, SaveKeyLogUseCase, DeleteKeyLogUseCase,
     CheckoutUseCase,
     GetRentPaymentsUseCase, SaveRentPaymentUseCase, DeleteRentPaymentUseCase, AddRentInstallmentUseCase,
+    FeatureFlagService,
     GetReceivablesLedgerUseCase, MarkRentPaymentReceivedUseCase,
     GetEmailTemplateUseCase, SaveEmailTemplateUseCase, EscalateOverdueRentPaymentsUseCase,
     EmailService, RentPaymentEscalationCron,
