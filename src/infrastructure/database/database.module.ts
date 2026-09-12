@@ -24,6 +24,7 @@ import { SpaceItemOrmEntity } from './typeorm/entities/space-item.orm-entity';
 import { RolePermissionOrmEntity } from './typeorm/entities/role-permission.orm-entity';
 import { BedRateHistoryOrmEntity } from './typeorm/entities/bed-rate-history.orm-entity';
 import { EmailTemplateOrmEntity } from './typeorm/entities/email-template.orm-entity';
+import { NotificationOrmEntity } from './typeorm/entities/notification.orm-entity';
 import { FeatureFlagOrmEntity } from './typeorm/entities/feature-flag.orm-entity';
 
 import { PropertyTypeOrmRepository } from './typeorm/repositories/property.typeorm-repository';
@@ -47,6 +48,7 @@ import { PropertySpaceTypeOrmRepository, SpaceItemTypeOrmRepository } from './ty
 import { RolePermissionTypeOrmRepository } from './typeorm/repositories/role-permission.typeorm-repository';
 import { BedRateHistoryTypeOrmRepository } from './typeorm/repositories/bed-rate-history.typeorm-repository';
 import { EmailTemplateTypeOrmRepository } from './typeorm/repositories/email-template.typeorm-repository';
+import { NotificationTypeOrmRepository } from './typeorm/repositories/notification.typeorm-repository';
 import { FeatureFlagTypeOrmRepository } from './typeorm/repositories/feature-flag.typeorm-repository';
 
 import { PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
@@ -70,6 +72,7 @@ import { PROPERTY_SPACE_REPOSITORY, SPACE_ITEM_REPOSITORY } from '../../domain/p
 import { ROLE_PERMISSION_REPOSITORY } from '../../domain/role-permission/role-permission.repository';
 import { BED_RATE_HISTORY_REPOSITORY } from '../../domain/bed-rate-history/bed-rate-history.repository';
 import { EMAIL_TEMPLATE_REPOSITORY } from '../../domain/email-template/email-template.repository';
+import { NOTIFICATION_REPOSITORY } from '../../domain/notification/notification.repository';
 import { FEATURE_FLAG_REPOSITORY } from '../../domain/feature-flag/feature-flag.repository';
 
 const ALL_ENTITIES = [
@@ -79,7 +82,7 @@ const ALL_ENTITIES = [
   CheckoutRecordOrmEntity, RentPaymentOrmEntity, RentPaymentInstallmentOrmEntity,
   LandlordPaymentOrmEntity, DepositTransactionOrmEntity, CompanyOrmEntity, AuditLogOrmEntity,
   PropertySpaceOrmEntity, SpaceItemOrmEntity, RolePermissionOrmEntity, BedRateHistoryOrmEntity,
-  EmailTemplateOrmEntity, FeatureFlagOrmEntity,
+  EmailTemplateOrmEntity, FeatureFlagOrmEntity, NotificationOrmEntity,
 ];
 
 @Module({
@@ -131,6 +134,7 @@ const ALL_ENTITIES = [
     { provide: ROLE_PERMISSION_REPOSITORY, useClass: RolePermissionTypeOrmRepository },
     { provide: BED_RATE_HISTORY_REPOSITORY, useClass: BedRateHistoryTypeOrmRepository },
     { provide: EMAIL_TEMPLATE_REPOSITORY, useClass: EmailTemplateTypeOrmRepository },
+    { provide: NOTIFICATION_REPOSITORY, useClass: NotificationTypeOrmRepository },
     { provide: FEATURE_FLAG_REPOSITORY, useClass: FeatureFlagTypeOrmRepository },
   ],
   exports: [
@@ -140,7 +144,7 @@ const ALL_ENTITIES = [
     CHECKOUT_RECORD_REPOSITORY, RENT_PAYMENT_REPOSITORY, RENT_PAYMENT_INSTALLMENT_REPOSITORY,
     LANDLORD_PAYMENT_REPOSITORY, DEPOSIT_TRANSACTION_REPOSITORY, COMPANY_REPOSITORY, AUDIT_LOG_REPOSITORY,
     PROPERTY_SPACE_REPOSITORY, SPACE_ITEM_REPOSITORY, ROLE_PERMISSION_REPOSITORY, BED_RATE_HISTORY_REPOSITORY,
-    EMAIL_TEMPLATE_REPOSITORY, FEATURE_FLAG_REPOSITORY,
+    EMAIL_TEMPLATE_REPOSITORY, FEATURE_FLAG_REPOSITORY, NOTIFICATION_REPOSITORY,
   ],
 })
 export class DatabaseModule {}

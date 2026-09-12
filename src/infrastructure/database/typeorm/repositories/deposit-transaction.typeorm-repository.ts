@@ -39,7 +39,10 @@ export class DepositTransactionTypeOrmRepository implements IDepositTransactionR
     d.proRataRentAmount = e.proRataRentAmount ? Number(e.proRataRentAmount) : null;
     d.iban = e.iban ?? null; d.payeeAddress = e.payeeAddress ?? null; d.status = e.status;
     d.dateProcessed = e.dateProcessed ?? null; d.bankReference = e.bankReference ?? null;
-    d.company = e.company ?? null; d.comments = e.comments ?? null; d.active = e.active;
+    d.company = e.company ?? null; d.comments = e.comments ?? null;
+    d.refundDueDate = e.refundDueDate ?? null;
+    d.completedBy = e.completedBy ?? null; d.completedByName = e.completedByName ?? null;
+    d.active = e.active;
     d.createdAt = e.createdAt; d.updatedAt = e.updatedAt;
     return d;
   }
