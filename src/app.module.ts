@@ -182,6 +182,13 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     PropertySpacesController, UsersController, RolePermissionsController, AuditLogsController,
   ],
   providers: [
+    // Nest internally reverses global-filter registration order before matching (see
+    // RouterExceptionFilters.create() in @nestjs/core), so the filter registered LAST is
+    // actually checked FIRST. SentryGlobalFilter has no @Catch() type restriction and matches
+    // everything, so it must be registered first here to end up checked last — a fallback for
+    // whatever QueryFailedFilter (registered after, checked first) doesn't specifically handle.
+    // QueryFailedFilter self-reports to Sentry (see that file) since SentryGlobalFilter never
+    // gets to see QueryFailedError with this ordering.
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
     { provide: APP_FILTER, useClass: QueryFailedFilter },
     { provide: APP_GUARD, useClass: ClerkAuthGuard },
