@@ -33,7 +33,10 @@ export class PdfReportExporterService {
     y = drawTableHeader(doc, fields, columnWidth, y);
 
     for (const row of rows) {
-      if (y + ROW_HEIGHT > MARGIN + pageHeight - FOOTER_HEIGHT) {
+      doc.font('Helvetica').fontSize(8);
+      const estimatedRowHeight = calculateRowHeight(doc, fields, row, columnWidth);
+
+      if (y + estimatedRowHeight > MARGIN + pageHeight - FOOTER_HEIGHT) {
         doc.addPage({ size: 'A4', layout, margin: MARGIN });
         drawHeader(doc, entityLabel, pageWidth);
         y = MARGIN + HEADER_HEIGHT;
@@ -67,27 +70,45 @@ function drawHeader(doc: PDFKit.PDFDocument, title: string, pageWidth: number): 
 function drawTableHeader(doc: PDFKit.PDFDocument, fields: ReportFieldMeta[], columnWidth: number, y: number): number {
   const x0 = doc.page.margins.left;
   doc.font('Helvetica-Bold').fontSize(8);
-  doc.rect(x0, y, columnWidth * fields.length, ROW_HEIGHT).fillAndStroke('#f0f0f0', '#000');
+
+  // Calculate max height needed for headers with wrapping
+  let maxHeaderHeight = ROW_HEIGHT;
+  fields.forEach((field) => {
+    const height = doc.heightOfString(field.label, { width: columnWidth - 6 });
+    maxHeaderHeight = Math.max(maxHeaderHeight, Math.ceil(height) + 6);
+  });
+
+  doc.rect(x0, y, columnWidth * fields.length, maxHeaderHeight).fillAndStroke('#f0f0f0', '#000');
   doc.fillColor('#000');
   fields.forEach((field, i) => {
-    doc.text(field.label, x0 + i * columnWidth + 3, y + 6, { width: columnWidth - 6, height: ROW_HEIGHT, ellipsis: true });
+    doc.text(field.label, x0 + i * columnWidth + 3, y + 3, { width: columnWidth - 6 });
   });
-  return y + ROW_HEIGHT;
+  return y + maxHeaderHeight;
 }
 
 function drawTableRow(doc: PDFKit.PDFDocument, fields: ReportFieldMeta[], row: Record<string, unknown>, columnWidth: number, y: number): number {
   const x0 = doc.page.margins.left;
   doc.font('Helvetica').fontSize(8);
+  const rowHeight = calculateRowHeight(doc, fields, row, columnWidth);
+
   fields.forEach((field, i) => {
     const cellX = x0 + i * columnWidth;
-    doc.rect(cellX, y, columnWidth, ROW_HEIGHT).stroke('#ccc');
-    doc.fillColor('#000').text(formatCell(field, row[field.key]), cellX + 3, y + 6, {
+    doc.rect(cellX, y, columnWidth, rowHeight).stroke('#ccc');
+    doc.fillColor('#000').text(formatCell(field, row[field.key]), cellX + 3, y + 3, {
       width: columnWidth - 6,
-      height: ROW_HEIGHT,
-      ellipsis: true,
     });
   });
-  return y + ROW_HEIGHT;
+  return y + rowHeight;
+}
+
+function calculateRowHeight(doc: PDFKit.PDFDocument, fields: ReportFieldMeta[], row: Record<string, unknown>, columnWidth: number): number {
+  let maxHeight = ROW_HEIGHT;
+  fields.forEach((field) => {
+    const cellText = formatCell(field, row[field.key]);
+    const height = doc.heightOfString(cellText, { width: columnWidth - 6 });
+    maxHeight = Math.max(maxHeight, Math.ceil(height) + 6);
+  });
+  return maxHeight;
 }
 
 function formatCell(field: ReportFieldMeta, value: unknown): string {
