@@ -43,13 +43,25 @@ export class BedTypeOrmRepository implements IBedRepository {
   }
 
   async upsertByPropertyAndNumber(bed: Partial<Bed>): Promise<Bed> {
+    // Bed number alone is only unique property-wide for the older numbering convention.
+    // Under the letter-first convention (A1, B1, ...) it resets per bedroom, so two
+    // different beds can share the same number — disambiguate by bedroom when we have one,
+    // instead of overwriting whichever bed the number matched first.
     let entity = await this.repo.findOne({
-      where: { propertyId: bed.propertyId, bedNumber: bed.bedNumber },
+      where: bed.bedroomId
+        ? { propertyId: bed.propertyId, bedroomId: bed.bedroomId, bedNumber: bed.bedNumber }
+        : { propertyId: bed.propertyId, bedNumber: bed.bedNumber },
     });
     if (entity) {
-      Object.assign(entity, bed);
+      // Mirrors PropertyTypeOrmRepository.upsertByCode: reactivate a soft-deleted bed
+      // instead of leaving it hidden behind an updated-but-inactive row.
+      // Historical rows (e.g. the CheckedOut sheet) use the old digit-only bed numbering
+      // with no letter, so they carry bedroomId: null — don't let that null out a bedroom
+      // assignment a more informative row (Control sheet) already made for this bed.
+      const bedroomId = bed.bedroomId ?? entity.bedroomId;
+      Object.assign(entity, bed, { bedroomId, active: true });
     } else {
-      entity = this.repo.create(bed as DeepPartial<BedOrmEntity>);
+      entity = this.repo.create({ ...bed, active: true } as DeepPartial<BedOrmEntity>);
     }
     const saved = await this.repo.save(entity);
     return this.toDomain(saved);

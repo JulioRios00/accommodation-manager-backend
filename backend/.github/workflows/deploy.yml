@@ -30,7 +30,7 @@ jobs:
             git reset --hard origin/main
 
             echo "==> Installing dependencies"
-            npm ci --omit=dev
+            npm ci --omit=dev --no-audit --no-fund --maxsockets=3
 
             echo "==> Building"
             npm run build

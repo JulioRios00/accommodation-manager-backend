@@ -5,6 +5,7 @@ import {
   IRentPaymentInstallmentRepository,
   RENT_PAYMENT_INSTALLMENT_REPOSITORY,
 } from '../../domain/rent-payment/rent-payment.repository';
+import { derivePaymentStatus } from '../../domain/rent-payment/rent-payment.entity';
 
 export interface AddRentInstallmentDto {
   rentPaymentId: string;
@@ -29,7 +30,11 @@ export class AddRentInstallmentUseCase {
 
     const installment = await this.installmentRepo.save(dto as any);
     const newAmountPaid = payment.amountPaid + dto.amount;
-    await this.paymentRepo.save({ ...payment, amountPaid: newAmountPaid });
+    await this.paymentRepo.save({
+      ...payment,
+      amountPaid: newAmountPaid,
+      paymentStatus: derivePaymentStatus(newAmountPaid, payment.rentAmount),
+    });
     return installment;
   }
 }

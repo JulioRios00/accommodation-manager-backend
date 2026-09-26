@@ -4,6 +4,7 @@ export interface IResidentRepository {
   findAll(): Promise<Resident[]>;
   findById(id: string): Promise<Resident | null>;
   findByEmail(email: string): Promise<Resident | null>;
+  findByTelephone(telephone: string): Promise<Resident | null>;
   findByClerkUserId(clerkUserId: string): Promise<Resident | null>;
   save(resident: Partial<Resident>): Promise<Resident>;
   delete(id: string): Promise<void>;

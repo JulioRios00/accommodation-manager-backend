@@ -12,13 +12,21 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
     private readonly repo: Repository<PropertyOrmEntity>,
   ) {}
 
-  async findAll(): Promise<Property[]> {
-    const entities = await this.repo.find({ where: { active: true }, relations: ['beds'] });
+  async findAll(includeInactive = false): Promise<Property[]> {
+    const entities = await this.repo.find({
+      where: includeInactive ? {} : { active: true },
+      relations: ['beds'],
+    });
     return entities.map(this.toDomain);
   }
 
   async findById(id: string): Promise<Property | null> {
     const entity = await this.repo.findOne({ where: { id, active: true } });
+    return entity ? this.toDomain(entity) : null;
+  }
+
+  async findByIdAnyStatus(id: string): Promise<Property | null> {
+    const entity = await this.repo.findOne({ where: { id } });
     return entity ? this.toDomain(entity) : null;
   }
 
@@ -48,14 +56,24 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
   }
 
   async upsertByCode(property: Partial<Property>): Promise<Property> {
+    // A previously soft-deleted property (active: false) can share this code — reactivate it
+    // instead of leaving it hidden while the import "succeeds" silently against a ghost row.
+    // Callers that know the real status (e.g. the Properties Mach sheet) can pass `active`
+    // explicitly to override this default.
+    const active = property.active ?? true;
     let entity = await this.repo.findOne({ where: { code: property.code } });
     if (entity) {
-      Object.assign(entity, property);
+      Object.assign(entity, property, { active });
     } else {
-      entity = this.repo.create(property as DeepPartial<PropertyOrmEntity>);
+      entity = this.repo.create({ ...property, active } as DeepPartial<PropertyOrmEntity>);
     }
     const saved = await this.repo.save(entity);
     return this.toDomain(saved);
+  }
+
+  async findByCodeAnyStatus(code: string): Promise<Property | null> {
+    const entity = await this.repo.findOne({ where: { code } });
+    return entity ? this.toDomain(entity) : null;
   }
 
   private toDomain(entity: PropertyOrmEntity): Property {
@@ -106,8 +124,13 @@ export class PropertyTypeOrmRepository implements IPropertyRepository {
     p.propertyEmail = entity.propertyEmail ?? null;
     p.paymentReference = entity.paymentReference ?? null;
     p.propertySupplier = entity.propertySupplier ?? null;
+    p.paymentNotes = entity.paymentNotes ?? null;
+    p.landlordPaymentDueDay = entity.landlordPaymentDueDay ?? null;
+    p.residentPaymentDueDay = entity.residentPaymentDueDay ?? null;
     p.officeKeysComment = entity.officeKeysComment ?? null;
     p.landlordId = entity.landlordId ?? null;
+    p.leaseStartDate = entity.leaseStartDate ?? null;
+    p.leaseEndDate = entity.leaseEndDate ?? null;
     p.active = entity.active;
     p.createdAt = entity.createdAt;
     p.updatedAt = entity.updatedAt;

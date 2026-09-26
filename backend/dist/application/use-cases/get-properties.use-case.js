@@ -19,8 +19,8 @@ let GetPropertiesUseCase = class GetPropertiesUseCase {
     constructor(propertyRepo) {
         this.propertyRepo = propertyRepo;
     }
-    async execute() {
-        return this.propertyRepo.findAll();
+    async execute(includeInactive = false) {
+        return this.propertyRepo.findAll(includeInactive);
     }
 };
 exports.GetPropertiesUseCase = GetPropertiesUseCase;

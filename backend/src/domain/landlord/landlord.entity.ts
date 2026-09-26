@@ -10,7 +10,6 @@ export class Landlord {
   bic: string | null;
   paymentReference: string | null;
   paymentMethod: string | null;
-  payoutDay: number | null;
   residentPaymentDueDay: number | null;
   active: boolean;
   createdAt: Date;

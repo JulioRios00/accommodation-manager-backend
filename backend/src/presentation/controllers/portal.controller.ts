@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Inject, NotFoundException, Post, Request, ForbiddenException } from '@nestjs/common';
+import { Body, Controller, Get, Inject, NotFoundException, Param, Post, Put, Request, ForbiddenException } from '@nestjs/common';
 import { Roles } from '../decorators/roles.decorator';
 import { IResidentRepository, RESIDENT_REPOSITORY } from '../../domain/resident/resident.repository';
 import { IBookingRepository, BOOKING_REPOSITORY } from '../../domain/booking/booking.repository';
 import { IBedRepository, BED_REPOSITORY } from '../../domain/bed/bed.repository';
 import { IPropertyRepository, PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
 import { SubmitResidentTicketUseCase } from '../../application/use-cases/submit-resident-ticket.use-case';
+import { GetMyNotificationsUseCase } from '../../application/use-cases/get-my-notifications.use-case';
+import { MarkNotificationReadUseCase } from '../../application/use-cases/mark-notification-read.use-case';
 
 export interface SubmitTicketBody {
   category: string;
@@ -21,7 +23,27 @@ export class PortalController {
     @Inject(BED_REPOSITORY) private readonly bedRepo: IBedRepository,
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepo: IPropertyRepository,
     private readonly submitResidentTicket: SubmitResidentTicketUseCase,
+    private readonly getMyNotifications: GetMyNotificationsUseCase,
+    private readonly markNotificationRead: MarkNotificationReadUseCase,
   ) {}
+
+  private async currentResidentId(req: any): Promise<string> {
+    const clerkUserId: string = req.auth?.sub;
+    if (!clerkUserId) throw new ForbiddenException();
+    const resident = await this.residentRepo.findByClerkUserId(clerkUserId);
+    if (!resident) throw new NotFoundException('No resident profile linked to this account');
+    return resident.id;
+  }
+
+  @Get('notifications')
+  async listNotifications(@Request() req: any) {
+    return this.getMyNotifications.execute(await this.currentResidentId(req));
+  }
+
+  @Put('notifications/:id/read')
+  async readNotification(@Param('id') id: string, @Request() req: any) {
+    return this.markNotificationRead.execute(id, await this.currentResidentId(req));
+  }
 
   @Get('me')
   async getProfile(@Request() req: any) {

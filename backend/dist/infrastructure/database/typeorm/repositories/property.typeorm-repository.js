@@ -22,12 +22,19 @@ let PropertyTypeOrmRepository = class PropertyTypeOrmRepository {
     constructor(repo) {
         this.repo = repo;
     }
-    async findAll() {
-        const entities = await this.repo.find({ where: { active: true }, relations: ['beds'] });
+    async findAll(includeInactive = false) {
+        const entities = await this.repo.find({
+            where: includeInactive ? {} : { active: true },
+            relations: ['beds'],
+        });
         return entities.map(this.toDomain);
     }
     async findById(id) {
         const entity = await this.repo.findOne({ where: { id, active: true } });
+        return entity ? this.toDomain(entity) : null;
+    }
+    async findByIdAnyStatus(id) {
+        const entity = await this.repo.findOne({ where: { id } });
         return entity ? this.toDomain(entity) : null;
     }
     async findByCode(code) {
@@ -51,15 +58,20 @@ let PropertyTypeOrmRepository = class PropertyTypeOrmRepository {
         await this.repo.update(id, { active: false });
     }
     async upsertByCode(property) {
+        const active = property.active ?? true;
         let entity = await this.repo.findOne({ where: { code: property.code } });
         if (entity) {
-            Object.assign(entity, property);
+            Object.assign(entity, property, { active });
         }
         else {
-            entity = this.repo.create(property);
+            entity = this.repo.create({ ...property, active });
         }
         const saved = await this.repo.save(entity);
         return this.toDomain(saved);
+    }
+    async findByCodeAnyStatus(code) {
+        const entity = await this.repo.findOne({ where: { code } });
+        return entity ? this.toDomain(entity) : null;
     }
     toDomain(entity) {
         const p = new property_entity_1.Property();
@@ -109,8 +121,13 @@ let PropertyTypeOrmRepository = class PropertyTypeOrmRepository {
         p.propertyEmail = entity.propertyEmail ?? null;
         p.paymentReference = entity.paymentReference ?? null;
         p.propertySupplier = entity.propertySupplier ?? null;
+        p.paymentNotes = entity.paymentNotes ?? null;
+        p.landlordPaymentDueDay = entity.landlordPaymentDueDay ?? null;
+        p.residentPaymentDueDay = entity.residentPaymentDueDay ?? null;
         p.officeKeysComment = entity.officeKeysComment ?? null;
         p.landlordId = entity.landlordId ?? null;
+        p.leaseStartDate = entity.leaseStartDate ?? null;
+        p.leaseEndDate = entity.leaseEndDate ?? null;
         p.active = entity.active;
         p.createdAt = entity.createdAt;
         p.updatedAt = entity.updatedAt;

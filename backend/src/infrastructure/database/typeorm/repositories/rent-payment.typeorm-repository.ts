@@ -9,11 +9,12 @@ import { RentPaymentInstallmentOrmEntity, RentPaymentOrmEntity } from '../entiti
 export class RentPaymentTypeOrmRepository implements IRentPaymentRepository {
   constructor(@InjectRepository(RentPaymentOrmEntity) private readonly repo: Repository<RentPaymentOrmEntity>) {}
 
-  async findAll(filter?: { propertyId?: string; month?: string; residentId?: string }): Promise<RentPayment[]> {
+  async findAll(filter?: { propertyId?: string; month?: string; residentId?: string; bookingId?: string }): Promise<RentPayment[]> {
     const where: FindOptionsWhere<RentPaymentOrmEntity> = { active: true };
     if (filter?.propertyId) where.propertyId = filter.propertyId;
     if (filter?.month) where.month = filter.month;
     if (filter?.residentId) where.residentId = filter.residentId;
+    if (filter?.bookingId) where.bookingId = filter.bookingId;
     return (await this.repo.find({ where, order: { month: 'DESC' } })).map(this.toDomain);
   }
 
@@ -23,6 +24,15 @@ export class RentPaymentTypeOrmRepository implements IRentPaymentRepository {
   }
 
   async save(payment: Partial<RentPayment>): Promise<RentPayment> {
+    if (payment.id) {
+      // For updates: fetch existing and merge changes
+      const existing = await this.repo.findOne({ where: { id: payment.id } });
+      if (existing) {
+        const merged = this.repo.merge(existing, payment as DeepPartial<RentPaymentOrmEntity>);
+        return this.toDomain(await this.repo.save(merged));
+      }
+    }
+    // For creates: just create a new entity
     const e = this.repo.create(payment as DeepPartial<RentPaymentOrmEntity>);
     return this.toDomain(await this.repo.save(e));
   }
@@ -36,7 +46,9 @@ export class RentPaymentTypeOrmRepository implements IRentPaymentRepository {
     d.id = e.id; d.residentId = e.residentId; d.bookingId = e.bookingId; d.propertyId = e.propertyId;
     d.month = e.month; d.paymentDueDay = e.paymentDueDay ?? null;
     d.rentAmount = Number(e.rentAmount); d.amountPaid = Number(e.amountPaid);
-    d.lateStatus = e.lateStatus; d.datePaid = e.datePaid ?? null; d.notes = e.notes ?? null; d.installments = [];
+    d.lateStatus = e.lateStatus; d.paymentStatus = e.paymentStatus ?? 'unpaid';
+    d.datePaid = e.datePaid ?? null; d.notes = e.notes ?? null; d.installments = [];
+    d.d1ReminderSentAt = e.d1ReminderSentAt ?? null; d.d4NoticeSentAt = e.d4NoticeSentAt ?? null;
     d.active = e.active; d.createdAt = e.createdAt; d.updatedAt = e.updatedAt;
     return d;
   }

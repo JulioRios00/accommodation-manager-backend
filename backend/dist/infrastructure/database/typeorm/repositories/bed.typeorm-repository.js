@@ -48,13 +48,16 @@ let BedTypeOrmRepository = class BedTypeOrmRepository {
     }
     async upsertByPropertyAndNumber(bed) {
         let entity = await this.repo.findOne({
-            where: { propertyId: bed.propertyId, bedNumber: bed.bedNumber },
+            where: bed.bedroomId
+                ? { propertyId: bed.propertyId, bedroomId: bed.bedroomId, bedNumber: bed.bedNumber }
+                : { propertyId: bed.propertyId, bedNumber: bed.bedNumber },
         });
         if (entity) {
-            Object.assign(entity, bed);
+            const bedroomId = bed.bedroomId ?? entity.bedroomId;
+            Object.assign(entity, bed, { bedroomId, active: true });
         }
         else {
-            entity = this.repo.create(bed);
+            entity = this.repo.create({ ...bed, active: true });
         }
         const saved = await this.repo.save(entity);
         return this.toDomain(saved);

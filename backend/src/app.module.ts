@@ -3,12 +3,21 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { MetricsMiddleware } from './presentation/middleware/metrics.middleware';
 import { ClerkAuthGuard } from './presentation/guards/clerk-auth.guard';
 import { RolesGuard } from './presentation/guards/roles.guard';
+import { FeatureFlagGuard } from './presentation/guards/feature-flag.guard';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TerminusModule } from '@nestjs/terminus';
 import { LoggerModule } from 'nestjs-pino';
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { QueryFailedFilter } from './presentation/filters/query-failed.filter';
 import { DatabaseModule } from './infrastructure/database/database.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { PropertyOrmEntity } from './infrastructure/database/typeorm/entities/property.orm-entity';
+import { BedOrmEntity } from './infrastructure/database/typeorm/entities/bed.orm-entity';
+import { ResidentOrmEntity } from './infrastructure/database/typeorm/entities/resident.orm-entity';
+import { BookingOrmEntity } from './infrastructure/database/typeorm/entities/booking.orm-entity';
+import { MaintenanceTicketOrmEntity } from './infrastructure/database/typeorm/entities/maintenance-ticket.orm-entity';
+import { LandlordOrmEntity } from './infrastructure/database/typeorm/entities/landlord.orm-entity';
 
 import { ImportController } from './presentation/controllers/import.controller';
 import { DashboardController } from './presentation/controllers/dashboard.controller';
@@ -28,7 +37,10 @@ import { RentPaymentsController } from './presentation/controllers/rent-payments
 import { LandlordPaymentsController } from './presentation/controllers/landlord-payments.controller';
 import { DepositTransactionsController } from './presentation/controllers/deposit-transactions.controller';
 import { ReportsController } from './presentation/controllers/reports.controller';
+import { CustomReportsController } from './presentation/controllers/custom-reports.controller';
 import { CompaniesController } from './presentation/controllers/companies.controller';
+import { EmailTemplatesController } from './presentation/controllers/email-templates.controller';
+import { FeatureFlagsController } from './presentation/controllers/feature-flags.controller';
 import { BedroomsController } from './presentation/controllers/bedrooms.controller';
 import { UsersController } from './presentation/controllers/users.controller';
 import { RolePermissionsController } from './presentation/controllers/role-permissions.controller';
@@ -47,6 +59,7 @@ import { GetResidentsUseCase } from './application/use-cases/get-residents.use-c
 import { GetBookingsUseCase } from './application/use-cases/get-bookings.use-case';
 import { SavePropertyUseCase } from './application/use-cases/save-property.use-case';
 import { DeletePropertyUseCase } from './application/use-cases/delete-property.use-case';
+import { HardDeletePropertyUseCase } from './application/use-cases/hard-delete-property.use-case';
 import { SaveBedUseCase } from './application/use-cases/save-bed.use-case';
 import { DeleteBedUseCase } from './application/use-cases/delete-bed.use-case';
 import { SaveResidentUseCase } from './application/use-cases/save-resident.use-case';
@@ -74,13 +87,39 @@ import { GetRentPaymentsUseCase } from './application/use-cases/get-rent-payment
 import { SaveRentPaymentUseCase } from './application/use-cases/save-rent-payment.use-case';
 import { DeleteRentPaymentUseCase } from './application/use-cases/delete-rent-payment.use-case';
 import { AddRentInstallmentUseCase } from './application/use-cases/add-rent-installment.use-case';
+import { GetReceivablesLedgerUseCase } from './application/use-cases/get-receivables-ledger.use-case';
+import { FeatureFlagService } from './application/services/feature-flag.service';
+import { MarkRentPaymentReceivedUseCase } from './application/use-cases/mark-rent-payment-received.use-case';
+import { GetEmailTemplateUseCase } from './application/use-cases/get-email-template.use-case';
+import { SaveEmailTemplateUseCase } from './application/use-cases/save-email-template.use-case';
+import { EscalateOverdueRentPaymentsUseCase } from './application/use-cases/escalate-overdue-rent-payments.use-case';
+import { EmailService } from './application/services/email.service';
+import { RentPaymentEscalationCron } from './application/services/rent-payment-escalation.cron';
 import { GetLandlordPaymentsUseCase } from './application/use-cases/get-landlord-payments.use-case';
 import { SaveLandlordPaymentUseCase } from './application/use-cases/save-landlord-payment.use-case';
 import { DeleteLandlordPaymentUseCase } from './application/use-cases/delete-landlord-payment.use-case';
+import { GetLandlordDisbursementLedgerUseCase } from './application/use-cases/get-landlord-disbursement-ledger.use-case';
+import { UpdateLandlordPaymentNotesUseCase } from './application/use-cases/update-landlord-payment-notes.use-case';
+import { MarkLandlordPaymentPaidUseCase } from './application/use-cases/mark-landlord-payment-paid.use-case';
+import { ExportLandlordDisbursementsUseCase } from './application/use-cases/export-landlord-disbursements.use-case';
 import { GetDepositTransactionsUseCase } from './application/use-cases/get-deposit-transactions.use-case';
 import { SaveDepositTransactionUseCase } from './application/use-cases/save-deposit-transaction.use-case';
 import { DeleteDepositTransactionUseCase } from './application/use-cases/delete-deposit-transaction.use-case';
+import { GetDepositRefundQueueUseCase } from './application/use-cases/get-deposit-refund-queue.use-case';
+import { CompleteDepositRefundUseCase } from './application/use-cases/complete-deposit-refund.use-case';
+import { GetMyNotificationsUseCase } from './application/use-cases/get-my-notifications.use-case';
+import { MarkNotificationReadUseCase } from './application/use-cases/mark-notification-read.use-case';
+import { NotificationService } from './application/services/notification.service';
 import { GetDelinquencyReportUseCase } from './application/use-cases/get-delinquency-report.use-case';
+import { GetPortfolioSnapshotUseCase } from './application/use-cases/get-portfolio-snapshot.use-case';
+import { ReportRegistryService } from './application/services/report-registry.service';
+import { ReportQueryService } from './application/services/report-query.service';
+import { XlsxReportExporterService } from './application/services/xlsx-report-exporter.service';
+import { PdfReportExporterService } from './application/services/pdf-report-exporter.service';
+import { GetReportEntitiesUseCase } from './application/use-cases/get-report-entities.use-case';
+import { GetReportEntityFieldsUseCase } from './application/use-cases/get-report-entity-fields.use-case';
+import { PreviewCustomReportUseCase } from './application/use-cases/preview-custom-report.use-case';
+import { ExportCustomReportUseCase } from './application/use-cases/export-custom-report.use-case';
 import { GetCompaniesUseCase } from './application/use-cases/get-companies.use-case';
 import { SaveCompanyUseCase } from './application/use-cases/save-company.use-case';
 import { DeleteCompanyUseCase } from './application/use-cases/delete-company.use-case';
@@ -96,7 +135,17 @@ import { SaveSpaceItemUseCase } from './application/use-cases/save-space-item.us
 import { DeleteSpaceItemUseCase } from './application/use-cases/delete-space-item.use-case';
 import { PropertySpacesController } from './presentation/controllers/property-spaces.controller';
 import { GetRolePermissionsUseCase } from './application/use-cases/get-role-permissions.use-case';
+import { GetAuditLogsUseCase } from './application/use-cases/get-audit-logs.use-case';
+import { AuditLogService } from './application/services/audit-log.service';
+import { ImportJobsService } from './application/services/import-jobs.service';
+import { AuditLogsController } from './presentation/controllers/audit-logs.controller';
+import { TransitionExpiredBookingsUseCase } from './application/use-cases/transition-expired-bookings.use-case';
+import { SyncPropertyLeaseStatusUseCase } from './application/use-cases/sync-property-lease-status.use-case';
+import { BookingStatusCron } from './application/services/booking-status.cron';
 import { SaveRolePermissionsUseCase } from './application/use-cases/save-role-permissions.use-case';
+import { GenerateUpcomingRentPaymentsUseCase } from './application/use-cases/generate-upcoming-rent-payments.use-case';
+import { GenerateUpcomingLandlordPaymentsUseCase } from './application/use-cases/generate-upcoming-landlord-payments.use-case';
+import { PaymentGenerationCron } from './application/services/payment-generation.cron';
 
 @Module({
   imports: [
@@ -108,29 +157,48 @@ import { SaveRolePermissionsUseCase } from './application/use-cases/save-role-pe
         transport: process.env.NODE_ENV !== 'production'
           ? { target: 'pino-pretty', options: { colorize: true, singleLine: true } }
           : undefined,
-        redact: ['req.headers.authorization'],
+        redact: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          'req.headers["x-clerk-auth-token"]',
+          'req.headers["x-clerk-auth-signature"]',
+          'req.headers["x-vercel-proxy-signature"]',
+        ],
       },
     }),
     DatabaseModule,
+    // Raw repositories for the Custom Report Builder's generic query engine — bypasses the
+    // per-feature domain-repository abstraction on purpose, isolated to this one module.
+    TypeOrmModule.forFeature([PropertyOrmEntity, BedOrmEntity, ResidentOrmEntity, BookingOrmEntity, MaintenanceTicketOrmEntity, LandlordOrmEntity]),
     TerminusModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [
     ImportController, DashboardController, PropertiesController, BedsController,
     ResidentsController, BookingsController, HealthController,
     LandlordsController, ServiceProvidersController, MaintenanceTicketsController, PortalController,
     KeyLogsController, CheckoutController, RentPaymentsController, LandlordPaymentsController,
-    DepositTransactionsController, ReportsController, CompaniesController, BedroomsController,
-    PropertySpacesController, UsersController, RolePermissionsController,
+    DepositTransactionsController, ReportsController, CustomReportsController, EmailTemplatesController, FeatureFlagsController, CompaniesController, BedroomsController,
+    PropertySpacesController, UsersController, RolePermissionsController, AuditLogsController,
   ],
   providers: [
+    // Nest internally reverses global-filter registration order before matching (see
+    // RouterExceptionFilters.create() in @nestjs/core), so the filter registered LAST is
+    // actually checked FIRST. SentryGlobalFilter has no @Catch() type restriction and matches
+    // everything, so it must be registered first here to end up checked last — a fallback for
+    // whatever QueryFailedFilter (registered after, checked first) doesn't specifically handle.
+    // QueryFailedFilter self-reports to Sentry (see that file) since SentryGlobalFilter never
+    // gets to see QueryFailedError with this ordering.
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
     { provide: APP_FILTER, useClass: QueryFailedFilter },
     { provide: APP_GUARD, useClass: ClerkAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: FeatureFlagGuard },
+    ImportJobsService,
     ImportXlsxUseCase, ImportBillsUseCase, ImportMaintenanceUseCase, ImportDepositsUseCase, ImportLandlordPaymentsUseCase, ImportResidentPaymentsUseCase, ImportResidentsToClerkUseCase,
     GetDashboardStatsUseCase,
     GetPropertiesUseCase, GetBedsUseCase, GetResidentsUseCase, GetBookingsUseCase,
-    SavePropertyUseCase, DeletePropertyUseCase, SaveBedUseCase, DeleteBedUseCase,
+    SavePropertyUseCase, DeletePropertyUseCase, HardDeletePropertyUseCase, SaveBedUseCase, DeleteBedUseCase,
     SaveResidentUseCase, DeleteResidentUseCase, SaveBookingUseCase, DeleteBookingUseCase,
     GetLandlordsUseCase, SaveLandlordUseCase, DeleteLandlordUseCase,
     GetPropertyAdministratorsUseCase, SavePropertyAdministratorUseCase, DeletePropertyAdministratorUseCase,
@@ -139,14 +207,27 @@ import { SaveRolePermissionsUseCase } from './application/use-cases/save-role-pe
     GetKeyLogsUseCase, SaveKeyLogUseCase, DeleteKeyLogUseCase,
     CheckoutUseCase,
     GetRentPaymentsUseCase, SaveRentPaymentUseCase, DeleteRentPaymentUseCase, AddRentInstallmentUseCase,
+    FeatureFlagService,
+    GetReceivablesLedgerUseCase, MarkRentPaymentReceivedUseCase,
+    GetEmailTemplateUseCase, SaveEmailTemplateUseCase, EscalateOverdueRentPaymentsUseCase,
+    EmailService, RentPaymentEscalationCron,
     GetLandlordPaymentsUseCase, SaveLandlordPaymentUseCase, DeleteLandlordPaymentUseCase,
+    GetLandlordDisbursementLedgerUseCase, UpdateLandlordPaymentNotesUseCase,
+    MarkLandlordPaymentPaidUseCase, ExportLandlordDisbursementsUseCase,
     GetDepositTransactionsUseCase, SaveDepositTransactionUseCase, DeleteDepositTransactionUseCase,
-    GetDelinquencyReportUseCase,
+    GetDepositRefundQueueUseCase, CompleteDepositRefundUseCase,
+    GetMyNotificationsUseCase, MarkNotificationReadUseCase, NotificationService,
+    GetDelinquencyReportUseCase, GetPortfolioSnapshotUseCase,
+    ReportRegistryService, ReportQueryService, XlsxReportExporterService, PdfReportExporterService,
+    GetReportEntitiesUseCase, GetReportEntityFieldsUseCase, PreviewCustomReportUseCase, ExportCustomReportUseCase,
     GetCompaniesUseCase, SaveCompanyUseCase, DeleteCompanyUseCase,
     GetBedroomsUseCase, SaveBedroomUseCase, DeleteBedroomUseCase,
     GetPropertySpacesUseCase, SavePropertySpaceUseCase, DeletePropertySpaceUseCase,
     SaveSpaceItemUseCase, DeleteSpaceItemUseCase,
     GetRolePermissionsUseCase, SaveRolePermissionsUseCase,
+    GenerateUpcomingRentPaymentsUseCase, GenerateUpcomingLandlordPaymentsUseCase, PaymentGenerationCron,
+    GetAuditLogsUseCase, AuditLogService,
+    TransitionExpiredBookingsUseCase, SyncPropertyLeaseStatusUseCase, BookingStatusCron,
   ],
 })
 export class AppModule implements NestModule {

@@ -27,6 +27,7 @@ export class CheckoutRecordTypeOrmRepository implements ICheckoutRecordRepositor
     const d = new CheckoutRecord();
     d.id = e.id; d.bookingId = e.bookingId; d.checkoutDate = e.checkoutDate;
     d.keysReturned = e.keysReturned ?? false; d.inspectionNotes = e.inspectionNotes ?? null;
+    d.roomConditionChecklist = e.roomConditionChecklist ?? null;
     d.depositRefundAmount = e.depositRefundAmount ? Number(e.depositRefundAmount) : null;
     d.refundIban = e.refundIban ?? null;
     d.proRataRentAmount = e.proRataRentAmount ? Number(e.proRataRentAmount) : null;

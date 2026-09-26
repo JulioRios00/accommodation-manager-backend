@@ -1,6 +1,8 @@
 import { Bed } from '../../domain/bed/bed.entity';
 import { IBedRepository } from '../../domain/bed/bed.repository';
 import { IBedroomRepository } from '../../domain/bedroom/bedroom.repository';
+import { IBedRateHistoryRepository } from '../../domain/bed-rate-history/bed-rate-history.repository';
+import { Actor, AuditLogService } from '../services/audit-log.service';
 export interface SaveBedDto {
     id?: string;
     propertyId: string;
@@ -18,6 +20,8 @@ export interface SaveBedDto {
 export declare class SaveBedUseCase {
     private readonly repo;
     private readonly bedroomRepo;
-    constructor(repo: IBedRepository, bedroomRepo: IBedroomRepository);
-    execute(dto: SaveBedDto): Promise<Bed>;
+    private readonly rateHistoryRepo;
+    private readonly auditLog;
+    constructor(repo: IBedRepository, bedroomRepo: IBedroomRepository, rateHistoryRepo: IBedRateHistoryRepository, auditLog: AuditLogService);
+    execute(dto: SaveBedDto, actor?: Actor): Promise<Bed>;
 }

@@ -18,17 +18,17 @@ export class KeyLogsController {
   }
 
   @Post()
-  @Roles('sysadmin', 'manager', 'administrator')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async create(@Body() dto: SaveKeyLogDto) { return this.saveKeyLog.execute(dto); }
 
   @Put(':id')
-  @Roles('sysadmin', 'manager', 'administrator')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async update(@Param('id') id: string, @Body() dto: SaveKeyLogDto) {
     return this.saveKeyLog.execute({ ...dto, id });
   }
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async remove(@Param('id') id: string) { await this.deleteKeyLog.execute(id); }
 }

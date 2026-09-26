@@ -19,6 +19,9 @@ export class DepositTransactionOrmEntity {
   @Column({ length: 100, nullable: true }) bankReference: string;
   @Column({ length: 100, nullable: true }) company: string;
   @Column({ type: 'text', nullable: true }) comments: string;
+  @Column({ type: 'date', nullable: true }) refundDueDate: Date;
+  @Column({ length: 100, nullable: true }) completedBy: string;
+  @Column({ length: 200, nullable: true }) completedByName: string;
   @Column({ default: true }) active: boolean;
   @CreateDateColumn() createdAt: Date;
   @UpdateDateColumn() updatedAt: Date;

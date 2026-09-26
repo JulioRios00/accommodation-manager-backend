@@ -33,7 +33,7 @@ export class LandlordTypeOrmRepository implements ILandlordRepository {
     d.bankName = e.bankName ?? null; d.sortCode = e.sortCode ?? null;
     d.accountNumber = e.accountNumber ?? null; d.iban = e.iban ?? null; d.bic = e.bic ?? null;
     d.paymentReference = e.paymentReference ?? null; d.paymentMethod = e.paymentMethod ?? null;
-    d.payoutDay = e.payoutDay ?? null; d.residentPaymentDueDay = e.residentPaymentDueDay ?? null;
+    d.residentPaymentDueDay = e.residentPaymentDueDay ?? null;
     d.active = e.active; d.createdAt = e.createdAt; d.updatedAt = e.updatedAt;
     return d;
   }

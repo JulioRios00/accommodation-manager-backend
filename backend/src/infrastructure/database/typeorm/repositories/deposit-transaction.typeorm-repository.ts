@@ -23,6 +23,15 @@ export class DepositTransactionTypeOrmRepository implements IDepositTransactionR
   }
 
   async save(tx: Partial<DepositTransaction>): Promise<DepositTransaction> {
+    if (tx.id) {
+      // For updates: fetch existing and merge changes
+      const existing = await this.repo.findOne({ where: { id: tx.id } });
+      if (existing) {
+        const merged = this.repo.merge(existing, tx as DeepPartial<DepositTransactionOrmEntity>);
+        return this.toDomain(await this.repo.save(merged));
+      }
+    }
+    // For creates: just create a new entity
     const e = this.repo.create(tx as DeepPartial<DepositTransactionOrmEntity>);
     return this.toDomain(await this.repo.save(e));
   }
@@ -39,7 +48,10 @@ export class DepositTransactionTypeOrmRepository implements IDepositTransactionR
     d.proRataRentAmount = e.proRataRentAmount ? Number(e.proRataRentAmount) : null;
     d.iban = e.iban ?? null; d.payeeAddress = e.payeeAddress ?? null; d.status = e.status;
     d.dateProcessed = e.dateProcessed ?? null; d.bankReference = e.bankReference ?? null;
-    d.company = e.company ?? null; d.comments = e.comments ?? null; d.active = e.active;
+    d.company = e.company ?? null; d.comments = e.comments ?? null;
+    d.refundDueDate = e.refundDueDate ?? null;
+    d.completedBy = e.completedBy ?? null; d.completedByName = e.completedByName ?? null;
+    d.active = e.active;
     d.createdAt = e.createdAt; d.updatedAt = e.updatedAt;
     return d;
   }

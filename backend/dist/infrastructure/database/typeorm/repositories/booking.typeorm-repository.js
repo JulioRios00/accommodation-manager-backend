@@ -26,14 +26,14 @@ let BookingTypeOrmRepository = class BookingTypeOrmRepository {
         const where = status ? { status, active: true } : { active: true };
         const entities = await this.repo.find({
             where,
-            relations: ['bed', 'bed.property', 'resident'],
+            relations: ['bed', 'bed.property', 'bed.bedroom', 'resident'],
         });
         return entities.map(this.toDomain);
     }
     async findById(id) {
         const entity = await this.repo.findOne({
             where: { id, active: true },
-            relations: ['bed', 'bed.property', 'resident'],
+            relations: ['bed', 'bed.property', 'bed.bedroom', 'resident'],
         });
         return entity ? this.toDomain(entity) : null;
     }
@@ -47,9 +47,16 @@ let BookingTypeOrmRepository = class BookingTypeOrmRepository {
     async findActiveByResidentId(residentId) {
         const entity = await this.repo.findOne({
             where: { residentId, status: 'active', active: true },
-            relations: ['bed', 'bed.property'],
+            relations: ['bed', 'bed.property', 'bed.bedroom'],
         });
         return entity ? this.toDomain(entity) : null;
+    }
+    async findAllActiveByResidentId(residentId) {
+        const entities = await this.repo.find({
+            where: { residentId, status: 'active', active: true },
+            relations: ['bed', 'bed.property', 'bed.bedroom'],
+        });
+        return entities.map(this.toDomain);
     }
     async findOverlappingActive(bedId, startDate, endDate, excludeId) {
         const qb = this.repo.createQueryBuilder('b')
@@ -96,6 +103,7 @@ let BookingTypeOrmRepository = class BookingTypeOrmRepository {
                 bedNumber: entity.bed.bedNumber,
                 name: entity.bed.name ?? null,
                 bedroomType: entity.bed.bedroomType,
+                bedroomName: entity.bed.bedroom?.name ?? null,
                 propertyId: entity.bed.propertyId,
                 propertyCode: entity.bed.property?.code ?? null,
             }

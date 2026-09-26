@@ -18,9 +18,13 @@ export const SECTIONS = [
   'Key Log',
   'Payments',
   'Reports',
+  'Custom Reports',
+  'Communication Settings',
+  'Landlord Disbursements',
   'Companies',
   'Import Data',
   'User Management',
+  'Activity Log',
 ] as const;
 
 export type Section = (typeof SECTIONS)[number];

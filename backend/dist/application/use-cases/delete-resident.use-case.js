@@ -15,21 +15,30 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeleteResidentUseCase = void 0;
 const common_1 = require("@nestjs/common");
 const resident_repository_1 = require("../../domain/resident/resident.repository");
+const audit_log_service_1 = require("../services/audit-log.service");
 let DeleteResidentUseCase = class DeleteResidentUseCase {
-    constructor(repo) {
+    constructor(repo, auditLog) {
         this.repo = repo;
+        this.auditLog = auditLog;
     }
-    async execute(id) {
+    async execute(id, actor) {
         const existing = await this.repo.findById(id);
         if (!existing)
             throw new common_1.NotFoundException(`Resident ${id} not found`);
         await this.repo.delete(id);
+        await this.auditLog.record({
+            actor,
+            action: 'delete',
+            entityType: 'Resident',
+            entityId: id,
+            before: existing,
+        });
     }
 };
 exports.DeleteResidentUseCase = DeleteResidentUseCase;
 exports.DeleteResidentUseCase = DeleteResidentUseCase = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Inject)(resident_repository_1.RESIDENT_REPOSITORY)),
-    __metadata("design:paramtypes", [Object])
+    __metadata("design:paramtypes", [Object, audit_log_service_1.AuditLogService])
 ], DeleteResidentUseCase);
 //# sourceMappingURL=delete-resident.use-case.js.map

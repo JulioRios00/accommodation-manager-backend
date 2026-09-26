@@ -16,6 +16,11 @@ export class DepositTransaction {
   bankReference: string | null;
   company: string | null;
   comments: string | null;
+  /** Business-day deadline for refunds (UC-601) — computed once at creation from checkoutDate,
+   *  not recomputed on read since the inputs never change after the fact. */
+  refundDueDate: Date | null;
+  completedBy: string | null;
+  completedByName: string | null;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;

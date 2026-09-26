@@ -39,6 +39,10 @@ let ResidentTypeOrmRepository = class ResidentTypeOrmRepository {
         const entity = await this.repo.findOne({ where: { email, active: true } });
         return entity ? this.toDomain(entity) : null;
     }
+    async findByTelephone(telephone) {
+        const entity = await this.repo.findOne({ where: { telephone, active: true } });
+        return entity ? this.toDomain(entity) : null;
+    }
     async findByClerkUserId(clerkUserId) {
         const entity = await this.repo.findOne({ where: { clerkUserId, active: true } });
         return entity ? this.toDomain(entity) : null;

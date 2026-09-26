@@ -14,9 +14,7 @@ export class HealthController {
   @Get()
   @HealthCheck()
   check() {
-    return this.health.check([
-      () => this.db.pingCheck('database'),
-    ]);
+    return this.health.check([() => this.db.pingCheck('database')]);
   }
 
   @Get('live')
@@ -27,5 +25,10 @@ export class HealthController {
   @Get('metrics')
   metrics() {
     return requestMetrics.snapshot();
+  }
+
+  @Get('/debug-sentry')
+  getError() {
+    throw new Error('My first Sentry error!');
   }
 }

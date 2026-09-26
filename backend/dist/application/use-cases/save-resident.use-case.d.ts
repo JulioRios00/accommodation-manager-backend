@@ -1,5 +1,6 @@
 import { Resident } from '../../domain/resident/resident.entity';
 import { IResidentRepository } from '../../domain/resident/resident.repository';
+import { Actor, AuditLogService } from '../services/audit-log.service';
 export interface SaveResidentDto {
     id?: string;
     clerkUserId?: string | null;
@@ -20,6 +21,7 @@ export interface SaveResidentDto {
 }
 export declare class SaveResidentUseCase {
     private readonly repo;
-    constructor(repo: IResidentRepository);
-    execute(dto: SaveResidentDto): Promise<Resident>;
+    private readonly auditLog;
+    constructor(repo: IResidentRepository, auditLog: AuditLogService);
+    execute(dto: SaveResidentDto, actor?: Actor): Promise<Resident>;
 }

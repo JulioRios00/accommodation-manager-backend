@@ -1,5 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { parseXlsx, ParsedRow } from '../../infrastructure/parsers/xlsx.parser';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { parseXlsx, parsePropertyStatuses, ParsedRow } from '../../infrastructure/parsers/xlsx.parser';
 import { Property } from '../../domain/property/property.entity';
 import { Bed } from '../../domain/bed/bed.entity';
 import { IPropertyRepository, PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
@@ -7,26 +7,56 @@ import { IBedRepository, BED_REPOSITORY } from '../../domain/bed/bed.repository'
 import { IResidentRepository, RESIDENT_REPOSITORY } from '../../domain/resident/resident.repository';
 import { IBookingRepository, BOOKING_REPOSITORY } from '../../domain/booking/booking.repository';
 import { IBedroomRepository, BEDROOM_REPOSITORY } from '../../domain/bedroom/bedroom.repository';
+import { ILandlordRepository, LANDLORD_REPOSITORY } from '../../domain/landlord/landlord.repository';
+import { ImportSkipReason } from './import-deposits.use-case';
+
+// Column M (Sex) on the Control sheet — 'M'/'F' — doubles as the resident's own gender.
+function mapGender(sex: string | null | undefined): string | null {
+  const s = sex?.trim().toUpperCase();
+  if (s === 'M') return 'Male';
+  if (s === 'F') return 'Female';
+  return null;
+}
 
 @Injectable()
 export class ImportXlsxUseCase {
+  private readonly logger = new Logger(ImportXlsxUseCase.name);
+
   constructor(
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepo: IPropertyRepository,
     @Inject(BED_REPOSITORY) private readonly bedRepo: IBedRepository,
     @Inject(RESIDENT_REPOSITORY) private readonly residentRepo: IResidentRepository,
     @Inject(BOOKING_REPOSITORY) private readonly bookingRepo: IBookingRepository,
     @Inject(BEDROOM_REPOSITORY) private readonly bedroomRepo: IBedroomRepository,
+    @Inject(LANDLORD_REPOSITORY) private readonly landlordRepo: ILandlordRepository,
   ) {}
 
-  async execute(buffer: Buffer): Promise<{ imported: number; historicalImported: number }> {
+  async execute(buffer: Buffer): Promise<{ imported: number; historicalImported: number; skipped: number; skipReasons: ImportSkipReason[] }> {
     const rows = parseXlsx(buffer);
+    const propertyStatuses = parsePropertyStatuses(buffer);
     let imported = 0;
+    let skipped = 0;
+    const skipReasons: ImportSkipReason[] = [];
+    const skip = (identifier: string, reason: string) => {
+      skipped++;
+      skipReasons.push({ identifier, reason });
+      this.logger.warn(`[import-xlsx] skip ${identifier}: ${reason}`);
+    };
     // Caches bedroom lookups per property+letter for the duration of this import,
     // so repeated rows for the same physical bedroom don't race to create duplicates.
     const bedroomCache = new Map<string, string>();
 
     for (const row of rows) {
-      const { bed } = await this.upsertPropertyAndBed(row, bedroomCache);
+      if (row.bedNumber === null) {
+        // Only flag rows that actually had bed-number content — trailing blank
+        // filler rows below a sheet's real data also land here and aren't errors.
+        if (row.bedNumberRaw) {
+          skip(row.code, `Unrecognized bed number "${row.bedNumberRaw}" (expected digits with optional trailing letter, e.g. "12B")`);
+        }
+        continue;
+      }
+
+      const { bed } = await this.upsertPropertyAndBed(row, bedroomCache, propertyStatuses);
 
       // Clear existing bookings for this bed before re-importing
       await this.bookingRepo.deleteByBedId(bed.id);
@@ -34,7 +64,7 @@ export class ImportXlsxUseCase {
       // Create current resident booking if name exists and is not a placeholder
       const currentName = row.residentName;
       if (currentName && currentName.toLowerCase() !== 'resident full name') {
-        const resident = await this.residentRepo.save({
+        const resident = await this.upsertResident({
           fullName: currentName,
           email: row.residentEmail,
           telephone: row.residentTelephone,
@@ -43,6 +73,7 @@ export class ImportXlsxUseCase {
           iban: row.residentIban,
           emergencyContact: row.residentEmergencyContact,
           source: row.residentSource,
+          gender: mapGender(row.sex),
         });
 
         const today = new Date();
@@ -72,7 +103,7 @@ export class ImportXlsxUseCase {
       // Create temporary/upcoming resident booking if present
       const tempName = row.tempResidentName;
       if (tempName && tempName.toLowerCase() !== 'new resident' && tempName.toLowerCase() !== 'resident full name') {
-        const tempResident = await this.residentRepo.save({
+        const tempResident = await this.upsertResident({
           fullName: tempName,
           email: row.tempResidentEmail,
           telephone: row.tempResidentTelephone,
@@ -81,6 +112,7 @@ export class ImportXlsxUseCase {
           iban: row.tempResidentIban,
           emergencyContact: row.tempResidentEmergencyContact,
           source: row.tempResidentSource,
+          gender: mapGender(row.sex),
         });
 
         await this.bookingRepo.save({
@@ -100,16 +132,21 @@ export class ImportXlsxUseCase {
       imported++;
     }
 
-    const historicalImported = await this.importCheckedOut(buffer, bedroomCache);
+    const historicalImported = await this.importCheckedOut(buffer, bedroomCache, propertyStatuses, skip);
 
-    return { imported, historicalImported };
+    return { imported, historicalImported, skipped, skipReasons };
   }
 
   // The CheckedOut sheet shares the exact column layout of the Control sheet, but every
   // row represents a resident who has already moved out — imported as a 'completed'
   // booking so occupancy history survives even after Control is re-imported (which wipes
   // and recreates each bed's active/upcoming bookings).
-  private async importCheckedOut(buffer: Buffer, bedroomCache: Map<string, string>): Promise<number> {
+  private async importCheckedOut(
+    buffer: Buffer,
+    bedroomCache: Map<string, string>,
+    propertyStatuses: Map<string, boolean>,
+    skip: (identifier: string, reason: string) => void,
+  ): Promise<number> {
     const rows = parseXlsx(buffer, 'CheckedOut', false);
     let imported = 0;
 
@@ -117,8 +154,14 @@ export class ImportXlsxUseCase {
       const residentName = row.residentName;
       if (!residentName || residentName.toLowerCase() === 'resident full name') continue;
       if (!row.checkOutDate) continue;
+      if (row.bedNumber === null) {
+        if (row.bedNumberRaw) {
+          skip(row.code, `[CheckedOut] Unrecognized bed number "${row.bedNumberRaw}" (expected digits with optional trailing letter, e.g. "12B")`);
+        }
+        continue;
+      }
 
-      const { bed } = await this.upsertPropertyAndBed(row, bedroomCache);
+      const { bed } = await this.upsertPropertyAndBed(row, bedroomCache, propertyStatuses);
 
       const existingBookings = await this.bookingRepo.findByBedId(bed.id);
       const alreadyImported = existingBookings.some(
@@ -129,7 +172,7 @@ export class ImportXlsxUseCase {
       );
       if (alreadyImported) continue;
 
-      const resident = await this.residentRepo.save({
+      const resident = await this.upsertResident({
         fullName: residentName,
         email: row.residentEmail,
         telephone: row.residentTelephone,
@@ -138,6 +181,7 @@ export class ImportXlsxUseCase {
         iban: row.residentIban,
         emergencyContact: row.residentEmergencyContact,
         source: row.residentSource,
+        gender: mapGender(row.sex),
       });
 
       await this.bookingRepo.save({
@@ -161,11 +205,20 @@ export class ImportXlsxUseCase {
   }
 
   private async upsertPropertyAndBed(
-    row: ParsedRow,
+    row: ParsedRow & { bedNumber: number },
     bedroomCache: Map<string, string>,
+    propertyStatuses: Map<string, boolean>,
   ): Promise<{ property: Property; bed: Bed }> {
+    // Find or create landlord if name is provided
+    let landlordId: string | null = null;
+    if (row.landlordPayeeName && row.landlordPayeeName.toLowerCase() !== 'landlord name') {
+      const landlord = await this.findOrCreateLandlord(row.landlordPayeeName);
+      landlordId = landlord.id;
+    }
+
     const property = await this.propertyRepo.upsertByCode({
       code: row.code,
+      eirCode: row.eirCode,
       bu: row.bu,
       area: row.area,
       fullAddress: row.fullAddress,
@@ -174,6 +227,12 @@ export class ImportXlsxUseCase {
       fobCount: row.fobCount,
       electricityStatus: row.electricityStatus,
       gasStatus: row.gasStatus,
+      landlordPaymentDueDay: row.landlordPaymentDueDay,
+      residentPaymentDueDay: row.residentPaymentDueDay,
+      landlordId,
+      // Falls back to the prior "always reactivate on import" behavior when the sheet
+      // doesn't cover this property (sheet missing, or code not listed in it yet).
+      active: propertyStatuses.get(row.code) ?? true,
     });
 
     const bedroomId = row.bedroomLetter
@@ -192,6 +251,47 @@ export class ImportXlsxUseCase {
     });
 
     return { property, bed };
+  }
+
+  // Matches an existing resident by email or telephone (in that order) so re-imports
+  // and repeated occupants across properties update one record instead of creating
+  // a fresh duplicate every time.
+  private async upsertResident(data: {
+    fullName: string;
+    email: string | null;
+    telephone: string | null;
+    nationality: string | null;
+    personalId: string | null;
+    iban: string | null;
+    emergencyContact: string | null;
+    source: string | null;
+    gender?: string | null;
+  }) {
+    const existing =
+      (data.email && (await this.residentRepo.findByEmail(data.email))) ||
+      (data.telephone && (await this.residentRepo.findByTelephone(data.telephone))) ||
+      null;
+
+    return existing
+      ? this.residentRepo.save({ ...data, id: existing.id })
+      : this.residentRepo.save(data);
+  }
+
+  // Find existing landlord by name or create new one if not found.
+  // Matches by exact name match (case-insensitive) to avoid duplicates.
+  private async findOrCreateLandlord(name: string) {
+    const allLandlords = await this.landlordRepo.findAll();
+    const existing = allLandlords.find(l => l.name?.toLowerCase() === name.toLowerCase());
+
+    if (existing) return existing;
+
+    return this.landlordRepo.save({
+      name,
+      email: null,
+      bankName: null,
+      iban: null,
+      paymentMethod: null,
+    });
   }
 
   private async ensureBedroom(propertyId: string, letter: string, cache: Map<string, string>): Promise<string> {

@@ -16,17 +16,26 @@ exports.DeleteBedUseCase = void 0;
 const common_1 = require("@nestjs/common");
 const bed_repository_1 = require("../../domain/bed/bed.repository");
 const booking_repository_1 = require("../../domain/booking/booking.repository");
+const audit_log_service_1 = require("../services/audit-log.service");
 let DeleteBedUseCase = class DeleteBedUseCase {
-    constructor(bedRepo, bookingRepo) {
+    constructor(bedRepo, bookingRepo, auditLog) {
         this.bedRepo = bedRepo;
         this.bookingRepo = bookingRepo;
+        this.auditLog = auditLog;
     }
-    async execute(id) {
+    async execute(id, actor) {
         const existing = await this.bedRepo.findById(id);
         if (!existing)
             throw new common_1.NotFoundException(`Bed ${id} not found`);
         await this.bookingRepo.deleteByBedId(id);
         await this.bedRepo.delete(id);
+        await this.auditLog.record({
+            actor,
+            action: 'delete',
+            entityType: 'Bed',
+            entityId: id,
+            before: existing,
+        });
     }
 };
 exports.DeleteBedUseCase = DeleteBedUseCase;
@@ -34,6 +43,6 @@ exports.DeleteBedUseCase = DeleteBedUseCase = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Inject)(bed_repository_1.BED_REPOSITORY)),
     __param(1, (0, common_1.Inject)(booking_repository_1.BOOKING_REPOSITORY)),
-    __metadata("design:paramtypes", [Object, Object])
+    __metadata("design:paramtypes", [Object, Object, audit_log_service_1.AuditLogService])
 ], DeleteBedUseCase);
 //# sourceMappingURL=delete-bed.use-case.js.map

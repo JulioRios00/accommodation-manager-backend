@@ -18,6 +18,7 @@ const get_beds_use_case_1 = require("../../application/use-cases/get-beds.use-ca
 const save_bed_use_case_1 = require("../../application/use-cases/save-bed.use-case");
 const delete_bed_use_case_1 = require("../../application/use-cases/delete-bed.use-case");
 const roles_decorator_1 = require("../decorators/roles.decorator");
+const current_actor_decorator_1 = require("../decorators/current-actor.decorator");
 let BedsController = class BedsController {
     constructor(getBeds, saveBed, deleteBed) {
         this.getBeds = getBeds;
@@ -27,14 +28,14 @@ let BedsController = class BedsController {
     async findAll(propertyId) {
         return this.getBeds.execute(propertyId);
     }
-    async create(dto) {
-        return this.saveBed.execute(dto);
+    async create(dto, actor) {
+        return this.saveBed.execute(dto, actor);
     }
-    async update(id, dto) {
-        return this.saveBed.execute({ ...dto, id });
+    async update(id, dto, actor) {
+        return this.saveBed.execute({ ...dto, id }, actor);
     }
-    async remove(id) {
-        await this.deleteBed.execute(id);
+    async remove(id, actor) {
+        await this.deleteBed.execute(id, actor);
     }
 };
 exports.BedsController = BedsController;
@@ -47,28 +48,31 @@ __decorate([
 ], BedsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Post)(),
-    (0, roles_decorator_1.Roles)('sysadmin', 'manager'),
+    (0, roles_decorator_1.Roles)('sysadmin', 'manager', 'administrator', 'staff', 'maintenance'),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_actor_decorator_1.CurrentActor)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], BedsController.prototype, "create", null);
 __decorate([
     (0, common_1.Put)(':id'),
-    (0, roles_decorator_1.Roles)('sysadmin', 'manager'),
+    (0, roles_decorator_1.Roles)('sysadmin', 'manager', 'administrator', 'staff', 'maintenance'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_actor_decorator_1.CurrentActor)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", Promise)
 ], BedsController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     (0, common_1.HttpCode)(204),
-    (0, roles_decorator_1.Roles)('sysadmin', 'manager'),
+    (0, roles_decorator_1.Roles)('sysadmin', 'manager', 'administrator', 'staff', 'maintenance'),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_actor_decorator_1.CurrentActor)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], BedsController.prototype, "remove", null);
 exports.BedsController = BedsController = __decorate([
