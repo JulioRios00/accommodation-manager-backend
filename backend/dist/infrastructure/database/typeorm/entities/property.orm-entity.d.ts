@@ -50,6 +50,8 @@ export declare class PropertyOrmEntity {
     paymentNotes: string;
     landlordPaymentDueDay: number;
     residentPaymentDueDay: number;
+    landlordDepositAmount: number;
+    landlordMonthlyRentAmount: number;
     officeKeysComment: string;
     landlordId: string;
     leaseStartDate: Date;

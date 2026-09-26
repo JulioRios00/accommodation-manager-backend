@@ -48,6 +48,8 @@ export declare class Property {
     paymentNotes: string | null;
     landlordPaymentDueDay: number | null;
     residentPaymentDueDay: number | null;
+    landlordDepositAmount: number | null;
+    landlordMonthlyRentAmount: number | null;
     officeKeysComment: string | null;
     landlordId: string | null;
     leaseStartDate: Date | null;

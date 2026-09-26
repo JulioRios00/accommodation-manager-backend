@@ -170,6 +170,12 @@ export class PropertyOrmEntity {
   @Column({ type: 'int', nullable: true })
   residentPaymentDueDay: number;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  landlordDepositAmount: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  landlordMonthlyRentAmount: number;
+
   // Key inventory comment
   @Column({ type: 'text', nullable: true })
   officeKeysComment: string;
