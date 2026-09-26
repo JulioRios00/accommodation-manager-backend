@@ -7,6 +7,7 @@ import { IBedRepository, BED_REPOSITORY } from '../../domain/bed/bed.repository'
 import { IResidentRepository, RESIDENT_REPOSITORY } from '../../domain/resident/resident.repository';
 import { IBookingRepository, BOOKING_REPOSITORY } from '../../domain/booking/booking.repository';
 import { IBedroomRepository, BEDROOM_REPOSITORY } from '../../domain/bedroom/bedroom.repository';
+import { ILandlordRepository, LANDLORD_REPOSITORY } from '../../domain/landlord/landlord.repository';
 import { ImportSkipReason } from './import-deposits.use-case';
 
 // Column M (Sex) on the Control sheet — 'M'/'F' — doubles as the resident's own gender.
@@ -27,6 +28,7 @@ export class ImportXlsxUseCase {
     @Inject(RESIDENT_REPOSITORY) private readonly residentRepo: IResidentRepository,
     @Inject(BOOKING_REPOSITORY) private readonly bookingRepo: IBookingRepository,
     @Inject(BEDROOM_REPOSITORY) private readonly bedroomRepo: IBedroomRepository,
+    @Inject(LANDLORD_REPOSITORY) private readonly landlordRepo: ILandlordRepository,
   ) {}
 
   async execute(buffer: Buffer): Promise<{ imported: number; historicalImported: number; skipped: number; skipReasons: ImportSkipReason[] }> {
@@ -207,6 +209,13 @@ export class ImportXlsxUseCase {
     bedroomCache: Map<string, string>,
     propertyStatuses: Map<string, boolean>,
   ): Promise<{ property: Property; bed: Bed }> {
+    // Find or create landlord if name is provided
+    let landlordId: string | null = null;
+    if (row.landlordPayeeName && row.landlordPayeeName.toLowerCase() !== 'landlord name') {
+      const landlord = await this.findOrCreateLandlord(row.landlordPayeeName);
+      landlordId = landlord.id;
+    }
+
     const property = await this.propertyRepo.upsertByCode({
       code: row.code,
       eirCode: row.eirCode,
@@ -220,6 +229,7 @@ export class ImportXlsxUseCase {
       gasStatus: row.gasStatus,
       landlordPaymentDueDay: row.landlordPaymentDueDay,
       residentPaymentDueDay: row.residentPaymentDueDay,
+      landlordId,
       // Falls back to the prior "always reactivate on import" behavior when the sheet
       // doesn't cover this property (sheet missing, or code not listed in it yet).
       active: propertyStatuses.get(row.code) ?? true,
@@ -265,6 +275,23 @@ export class ImportXlsxUseCase {
     return existing
       ? this.residentRepo.save({ ...data, id: existing.id })
       : this.residentRepo.save(data);
+  }
+
+  // Find existing landlord by name or create new one if not found.
+  // Matches by exact name match (case-insensitive) to avoid duplicates.
+  private async findOrCreateLandlord(name: string) {
+    const allLandlords = await this.landlordRepo.findAll();
+    const existing = allLandlords.find(l => l.name?.toLowerCase() === name.toLowerCase());
+
+    if (existing) return existing;
+
+    return this.landlordRepo.save({
+      name,
+      email: null,
+      bankName: null,
+      iban: null,
+      paymentMethod: null,
+    });
   }
 
   private async ensureBedroom(propertyId: string, letter: string, cache: Map<string, string>): Promise<string> {

@@ -21,6 +21,7 @@ const bed_repository_1 = require("../../domain/bed/bed.repository");
 const resident_repository_1 = require("../../domain/resident/resident.repository");
 const booking_repository_1 = require("../../domain/booking/booking.repository");
 const bedroom_repository_1 = require("../../domain/bedroom/bedroom.repository");
+const landlord_repository_1 = require("../../domain/landlord/landlord.repository");
 function mapGender(sex) {
     const s = sex?.trim().toUpperCase();
     if (s === 'M')
@@ -30,12 +31,13 @@ function mapGender(sex) {
     return null;
 }
 let ImportXlsxUseCase = ImportXlsxUseCase_1 = class ImportXlsxUseCase {
-    constructor(propertyRepo, bedRepo, residentRepo, bookingRepo, bedroomRepo) {
+    constructor(propertyRepo, bedRepo, residentRepo, bookingRepo, bedroomRepo, landlordRepo) {
         this.propertyRepo = propertyRepo;
         this.bedRepo = bedRepo;
         this.residentRepo = residentRepo;
         this.bookingRepo = bookingRepo;
         this.bedroomRepo = bedroomRepo;
+        this.landlordRepo = landlordRepo;
         this.logger = new common_1.Logger(ImportXlsxUseCase_1.name);
     }
     async execute(buffer) {
@@ -176,6 +178,11 @@ let ImportXlsxUseCase = ImportXlsxUseCase_1 = class ImportXlsxUseCase {
         return imported;
     }
     async upsertPropertyAndBed(row, bedroomCache, propertyStatuses) {
+        let landlordId = null;
+        if (row.landlordPayeeName && row.landlordPayeeName.toLowerCase() !== 'landlord name') {
+            const landlord = await this.findOrCreateLandlord(row.landlordPayeeName);
+            landlordId = landlord.id;
+        }
         const property = await this.propertyRepo.upsertByCode({
             code: row.code,
             eirCode: row.eirCode,
@@ -189,6 +196,7 @@ let ImportXlsxUseCase = ImportXlsxUseCase_1 = class ImportXlsxUseCase {
             gasStatus: row.gasStatus,
             landlordPaymentDueDay: row.landlordPaymentDueDay,
             residentPaymentDueDay: row.residentPaymentDueDay,
+            landlordId,
             active: propertyStatuses.get(row.code) ?? true,
         });
         const bedroomId = row.bedroomLetter
@@ -214,6 +222,19 @@ let ImportXlsxUseCase = ImportXlsxUseCase_1 = class ImportXlsxUseCase {
             ? this.residentRepo.save({ ...data, id: existing.id })
             : this.residentRepo.save(data);
     }
+    async findOrCreateLandlord(name) {
+        const allLandlords = await this.landlordRepo.findAll();
+        const existing = allLandlords.find(l => l.name?.toLowerCase() === name.toLowerCase());
+        if (existing)
+            return existing;
+        return this.landlordRepo.save({
+            name,
+            email: null,
+            bankName: null,
+            iban: null,
+            paymentMethod: null,
+        });
+    }
     async ensureBedroom(propertyId, letter, cache) {
         const cacheKey = `${propertyId}:${letter}`;
         const cached = cache.get(cacheKey);
@@ -234,7 +255,8 @@ exports.ImportXlsxUseCase = ImportXlsxUseCase = ImportXlsxUseCase_1 = __decorate
     __param(2, (0, common_1.Inject)(resident_repository_1.RESIDENT_REPOSITORY)),
     __param(3, (0, common_1.Inject)(booking_repository_1.BOOKING_REPOSITORY)),
     __param(4, (0, common_1.Inject)(bedroom_repository_1.BEDROOM_REPOSITORY)),
-    __metadata("design:paramtypes", [Object, Object, Object, Object, Object])
+    __param(5, (0, common_1.Inject)(landlord_repository_1.LANDLORD_REPOSITORY)),
+    __metadata("design:paramtypes", [Object, Object, Object, Object, Object, Object])
 ], ImportXlsxUseCase);
 function dateKey(d) {
     if (!d)

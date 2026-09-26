@@ -16,6 +16,7 @@ export interface ParsedRow {
   // Landlord Payment Details
   landlordPaymentDueDay: number | null;
   residentPaymentDueDay: number | null;
+  landlordPayeeName: string | null;
   // Bed
   bedNumber: number | null;
   /** Trailing letter from a bed number like "12B" — identifies which physical bedroom the bed is in. */
@@ -156,6 +157,7 @@ export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', require
     gasStatus: string | null;
     landlordPaymentDueDay: number | null;
     residentPaymentDueDay: number | null;
+    landlordPayeeName: string | null;
   } | null = null;
 
   // Data starts at row index 2 (row 3 in Excel, 0-indexed)
@@ -180,6 +182,7 @@ export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', require
         gasStatus: toStr(r[9]),
         landlordPaymentDueDay: r[10] !== null ? toNum(r[10]) : null,
         residentPaymentDueDay: r[11] !== null ? toNum(r[11]) : null,
+        landlordPayeeName: toStr(r[12]),
       };
     }
     if (!lastProperty) continue; // no property established yet — malformed leading row
@@ -187,44 +190,44 @@ export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', require
     result.push({
       // Property (cols A-J, indices 0-9) — carried forward across merged bed rows
       ...lastProperty,
-      // Landlord Payment Details (cols K-L, indices 10-11)
-      // Bed (cols M-P, indices 12-15)
-      ...parseBedNumber(r[12]),
-      bedroomType: toStr(r[13]) ?? '',
-      sex: toStr(r[14]) ?? '',
-      bedSize: toStr(r[15]) ?? '',
-      // Payment (cols Q-S, indices 16-18)
-      depositAmount: toNum(r[17]),
-      rentAmount: toNum(r[18]),
-      // Current resident (cols T-AB, indices 19-27)
-      residentName: toStr(r[19]),
-      residentEmail: toStr(r[20]),
-      residentTelephone: toStr(r[21]),
-      residentNationality: toStr(r[22]),
-      residentPersonalId: toStr(r[23]),
-      residentIban: toStr(r[24]),
-      residentEmergencyContact: toStr(r[25]),
-      residentSource: toStr(r[26]),
-      residentIsHead: toBool(r[27]),
-      // Booking (cols AC-AG, indices 28-32)
-      checkInDate: toDate(r[28]),
-      contractEndDate: toDate(r[29]),
-      checkOutDate: toDate(r[30]),
-      comments: toStr(r[32]),
-      // Temporary resident (cols AJ-AV, indices 35-47)
-      tempDepositAmount: r[35] !== null ? toNum(r[35]) : null,
-      tempRentAmount: r[36] !== null ? toNum(r[36]) : null,
-      tempResidentName: toStr(r[37]),
-      tempResidentEmail: toStr(r[38]),
-      tempResidentTelephone: toStr(r[39]),
-      tempResidentNationality: toStr(r[40]),
-      tempResidentPersonalId: toStr(r[41]),
-      tempResidentIban: toStr(r[42]),
-      tempResidentEmergencyContact: toStr(r[43]),
-      tempResidentSource: toStr(r[44]),
-      tempResidentIsHead: toBool(r[45]),
-      tempCheckInDate: toDate(r[46]),
-      tempContractEndDate: toDate(r[47]),
+      // Landlord Payment Details (cols K-M, indices 10-12)
+      // Bed (cols N-Q, indices 13-16)
+      ...parseBedNumber(r[13]),
+      bedroomType: toStr(r[14]) ?? '',
+      sex: toStr(r[15]) ?? '',
+      bedSize: toStr(r[16]) ?? '',
+      // Payment (cols R-T, indices 17-19)
+      depositAmount: toNum(r[18]),
+      rentAmount: toNum(r[19]),
+      // Current resident (cols U-AC, indices 20-28)
+      residentName: toStr(r[20]),
+      residentEmail: toStr(r[21]),
+      residentTelephone: toStr(r[22]),
+      residentNationality: toStr(r[23]),
+      residentPersonalId: toStr(r[24]),
+      residentIban: toStr(r[25]),
+      residentEmergencyContact: toStr(r[26]),
+      residentSource: toStr(r[27]),
+      residentIsHead: toBool(r[28]),
+      // Booking (cols AD-AH, indices 29-33)
+      checkInDate: toDate(r[29]),
+      contractEndDate: toDate(r[30]),
+      checkOutDate: toDate(r[31]),
+      comments: toStr(r[33]),
+      // Temporary resident (cols AK-AW, indices 36-48)
+      tempDepositAmount: r[36] !== null ? toNum(r[36]) : null,
+      tempRentAmount: r[37] !== null ? toNum(r[37]) : null,
+      tempResidentName: toStr(r[38]),
+      tempResidentEmail: toStr(r[39]),
+      tempResidentTelephone: toStr(r[40]),
+      tempResidentNationality: toStr(r[41]),
+      tempResidentPersonalId: toStr(r[42]),
+      tempResidentIban: toStr(r[43]),
+      tempResidentEmergencyContact: toStr(r[44]),
+      tempResidentSource: toStr(r[45]),
+      tempResidentIsHead: toBool(r[46]),
+      tempCheckInDate: toDate(r[47]),
+      tempContractEndDate: toDate(r[48]),
     });
   }
 

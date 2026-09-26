@@ -12,6 +12,7 @@ export interface ParsedRow {
     gasStatus: string | null;
     landlordPaymentDueDay: number | null;
     residentPaymentDueDay: number | null;
+    landlordPayeeName: string | null;
     bedNumber: number | null;
     bedroomLetter: string | null;
     bedNumberRaw: string | null;
