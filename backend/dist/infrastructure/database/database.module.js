@@ -34,6 +34,7 @@ const bed_rate_history_orm_entity_1 = require("./typeorm/entities/bed-rate-histo
 const email_template_orm_entity_1 = require("./typeorm/entities/email-template.orm-entity");
 const notification_orm_entity_1 = require("./typeorm/entities/notification.orm-entity");
 const feature_flag_orm_entity_1 = require("./typeorm/entities/feature-flag.orm-entity");
+const saved_report_orm_entity_1 = require("./typeorm/entities/saved-report.orm-entity");
 const property_typeorm_repository_1 = require("./typeorm/repositories/property.typeorm-repository");
 const bed_typeorm_repository_1 = require("./typeorm/repositories/bed.typeorm-repository");
 const bedroom_typeorm_repository_1 = require("./typeorm/repositories/bedroom.typeorm-repository");
@@ -57,6 +58,7 @@ const bed_rate_history_typeorm_repository_1 = require("./typeorm/repositories/be
 const email_template_typeorm_repository_1 = require("./typeorm/repositories/email-template.typeorm-repository");
 const notification_typeorm_repository_1 = require("./typeorm/repositories/notification.typeorm-repository");
 const feature_flag_typeorm_repository_1 = require("./typeorm/repositories/feature-flag.typeorm-repository");
+const saved_report_typeorm_repository_1 = require("./typeorm/repositories/saved-report.typeorm-repository");
 const property_repository_1 = require("../../domain/property/property.repository");
 const bed_repository_1 = require("../../domain/bed/bed.repository");
 const bedroom_repository_1 = require("../../domain/bedroom/bedroom.repository");
@@ -80,6 +82,7 @@ const bed_rate_history_repository_1 = require("../../domain/bed-rate-history/bed
 const email_template_repository_1 = require("../../domain/email-template/email-template.repository");
 const notification_repository_1 = require("../../domain/notification/notification.repository");
 const feature_flag_repository_1 = require("../../domain/feature-flag/feature-flag.repository");
+const saved_report_repository_1 = require("../../domain/saved-report/saved-report.repository");
 const ALL_ENTITIES = [
     property_orm_entity_1.PropertyOrmEntity, bed_orm_entity_1.BedOrmEntity, bedroom_orm_entity_1.BedroomOrmEntity, resident_orm_entity_1.ResidentOrmEntity, booking_orm_entity_1.BookingOrmEntity,
     landlord_orm_entity_1.LandlordOrmEntity, property_administrator_orm_entity_1.PropertyAdministratorOrmEntity, service_provider_orm_entity_1.ServiceProviderOrmEntity,
@@ -87,7 +90,7 @@ const ALL_ENTITIES = [
     checkout_record_orm_entity_1.CheckoutRecordOrmEntity, rent_payment_orm_entity_1.RentPaymentOrmEntity, rent_payment_orm_entity_1.RentPaymentInstallmentOrmEntity,
     landlord_payment_orm_entity_1.LandlordPaymentOrmEntity, deposit_transaction_orm_entity_1.DepositTransactionOrmEntity, company_orm_entity_1.CompanyOrmEntity, audit_log_orm_entity_1.AuditLogOrmEntity,
     property_space_orm_entity_1.PropertySpaceOrmEntity, space_item_orm_entity_1.SpaceItemOrmEntity, role_permission_orm_entity_1.RolePermissionOrmEntity, bed_rate_history_orm_entity_1.BedRateHistoryOrmEntity,
-    email_template_orm_entity_1.EmailTemplateOrmEntity, feature_flag_orm_entity_1.FeatureFlagOrmEntity, notification_orm_entity_1.NotificationOrmEntity,
+    email_template_orm_entity_1.EmailTemplateOrmEntity, feature_flag_orm_entity_1.FeatureFlagOrmEntity, notification_orm_entity_1.NotificationOrmEntity, saved_report_orm_entity_1.SavedReportOrmEntity,
 ];
 let DatabaseModule = class DatabaseModule {
 };
@@ -144,6 +147,7 @@ exports.DatabaseModule = DatabaseModule = __decorate([
             { provide: email_template_repository_1.EMAIL_TEMPLATE_REPOSITORY, useClass: email_template_typeorm_repository_1.EmailTemplateTypeOrmRepository },
             { provide: notification_repository_1.NOTIFICATION_REPOSITORY, useClass: notification_typeorm_repository_1.NotificationTypeOrmRepository },
             { provide: feature_flag_repository_1.FEATURE_FLAG_REPOSITORY, useClass: feature_flag_typeorm_repository_1.FeatureFlagTypeOrmRepository },
+            { provide: saved_report_repository_1.SAVED_REPORT_REPOSITORY, useClass: saved_report_typeorm_repository_1.SavedReportTypeOrmRepository },
         ],
         exports: [
             property_repository_1.PROPERTY_REPOSITORY, bed_repository_1.BED_REPOSITORY, bedroom_repository_1.BEDROOM_REPOSITORY, resident_repository_1.RESIDENT_REPOSITORY, booking_repository_1.BOOKING_REPOSITORY,
@@ -152,7 +156,7 @@ exports.DatabaseModule = DatabaseModule = __decorate([
             checkout_record_repository_1.CHECKOUT_RECORD_REPOSITORY, rent_payment_repository_1.RENT_PAYMENT_REPOSITORY, rent_payment_repository_1.RENT_PAYMENT_INSTALLMENT_REPOSITORY,
             landlord_payment_repository_1.LANDLORD_PAYMENT_REPOSITORY, deposit_transaction_repository_1.DEPOSIT_TRANSACTION_REPOSITORY, company_repository_1.COMPANY_REPOSITORY, audit_log_repository_1.AUDIT_LOG_REPOSITORY,
             property_space_repository_1.PROPERTY_SPACE_REPOSITORY, property_space_repository_1.SPACE_ITEM_REPOSITORY, role_permission_repository_1.ROLE_PERMISSION_REPOSITORY, bed_rate_history_repository_1.BED_RATE_HISTORY_REPOSITORY,
-            email_template_repository_1.EMAIL_TEMPLATE_REPOSITORY, feature_flag_repository_1.FEATURE_FLAG_REPOSITORY, notification_repository_1.NOTIFICATION_REPOSITORY,
+            email_template_repository_1.EMAIL_TEMPLATE_REPOSITORY, feature_flag_repository_1.FEATURE_FLAG_REPOSITORY, notification_repository_1.NOTIFICATION_REPOSITORY, saved_report_repository_1.SAVED_REPORT_REPOSITORY,
         ],
     })
 ], DatabaseModule);
