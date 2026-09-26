@@ -23,6 +23,15 @@ export class DepositTransactionTypeOrmRepository implements IDepositTransactionR
   }
 
   async save(tx: Partial<DepositTransaction>): Promise<DepositTransaction> {
+    if (tx.id) {
+      // For updates: fetch existing and merge changes
+      const existing = await this.repo.findOne({ where: { id: tx.id } });
+      if (existing) {
+        const merged = this.repo.merge(existing, tx as DeepPartial<DepositTransactionOrmEntity>);
+        return this.toDomain(await this.repo.save(merged));
+      }
+    }
+    // For creates: just create a new entity
     const e = this.repo.create(tx as DeepPartial<DepositTransactionOrmEntity>);
     return this.toDomain(await this.repo.save(e));
   }

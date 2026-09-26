@@ -64,6 +64,24 @@ export class SaveBookingUseCase {
       throw new BadRequestException('Licence start date must be before end date');
     }
 
+    // Validate check-out date is after check-in date if both are provided
+    if (dto.checkInDate && dto.checkOutDate) {
+      const checkInDate = new Date(dto.checkInDate);
+      const checkOutDate = new Date(dto.checkOutDate);
+      if (checkOutDate < checkInDate) {
+        throw new BadRequestException('Check-out date cannot be before check-in date');
+      }
+    }
+
+    // Auto-determine booking status based on check-in date if not explicitly setting to 'completed'
+    let status = dto.status;
+    if (startDate && status !== 'completed') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0);
+      status = startDate > today ? 'upcoming' : 'active';
+    }
+
     // A resident can hold more than one active booking (e.g. current one ending this month,
     // next one already signed for a different property) as long as the date ranges don't
     // overlap. Without dates on both sides we can't prove they don't overlap, so play safe.
@@ -114,6 +132,7 @@ export class SaveBookingUseCase {
 
     const booking = await this.repo.save({
       ...dto,
+      status, // Use auto-determined status instead of dto.status
       rentAmount: bookingRentAmount,
       depositAmount: bookingDepositAmount,
       checkInDate: dto.checkInDate ? new Date(dto.checkInDate) : null,
@@ -121,7 +140,7 @@ export class SaveBookingUseCase {
       checkOutDate: dto.checkOutDate ? new Date(dto.checkOutDate) : null,
     });
 
-    if (booking.status === 'active') {
+    if (status === 'active') {
       await this.bedRepo.save({ id: dto.bedId, status: 'allocated' });
     }
 
