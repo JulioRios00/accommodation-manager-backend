@@ -16,15 +16,27 @@ exports.SavePropertyUseCase = void 0;
 const common_1 = require("@nestjs/common");
 const property_repository_1 = require("../../domain/property/property.repository");
 const landlord_repository_1 = require("../../domain/landlord/landlord.repository");
+const audit_log_service_1 = require("../services/audit-log.service");
 const ALLOWED_PROPERTY_TYPES = ['House', 'Apartment', 'Duplex', 'Studio Block', 'Other'];
+function deriveActive(leaseStartDate, leaseEndDate, fallback, now = new Date()) {
+    if (!leaseStartDate && !leaseEndDate)
+        return fallback;
+    if (leaseStartDate && now < leaseStartDate)
+        return false;
+    if (leaseEndDate && now > leaseEndDate)
+        return false;
+    return true;
+}
 let SavePropertyUseCase = class SavePropertyUseCase {
-    constructor(repo, landlordRepo) {
+    constructor(repo, landlordRepo, auditLog) {
         this.repo = repo;
         this.landlordRepo = landlordRepo;
+        this.auditLog = auditLog;
     }
-    async execute(dto) {
+    async execute(dto, actor) {
+        let existing = null;
         if (dto.id) {
-            const existing = await this.repo.findById(dto.id);
+            existing = await this.repo.findByIdAnyStatus(dto.id);
             if (!existing)
                 throw new common_1.NotFoundException(`Property ${dto.id} not found`);
         }
@@ -32,9 +44,34 @@ let SavePropertyUseCase = class SavePropertyUseCase {
         this.validateFields(normalized);
         await this.validateUniqueness(normalized);
         await this.validateLandlord(normalized);
-        if (normalized.id)
-            return this.repo.save(normalized);
-        return this.repo.save({ ...normalized, active: true });
+        const leaseStartDate = normalized.leaseStartDate ? new Date(normalized.leaseStartDate) : null;
+        const leaseEndDate = normalized.leaseEndDate ? new Date(normalized.leaseEndDate) : null;
+        const payload = {
+            ...normalized,
+            leaseStartDate,
+            leaseEndDate,
+            active: deriveActive(leaseStartDate, leaseEndDate, normalized.active ?? existing?.active ?? true),
+        };
+        let property;
+        if (payload.id) {
+            property = await this.repo.save(payload);
+        }
+        else {
+            const deletedMatch = await this.repo.findByCodeAnyStatus(payload.code);
+            property =
+                deletedMatch && !deletedMatch.active
+                    ? await this.repo.save({ ...payload, id: deletedMatch.id })
+                    : await this.repo.save(payload);
+        }
+        await this.auditLog.record({
+            actor,
+            action: existing ? 'update' : 'create',
+            entityType: 'Property',
+            entityId: property.id,
+            before: existing,
+            after: property,
+        });
+        return property;
     }
     normalize(dto) {
         const result = { ...dto };
@@ -43,6 +80,10 @@ let SavePropertyUseCase = class SavePropertyUseCase {
         }
         if (result.internetContractEndDate === '')
             result.internetContractEndDate = null;
+        if (result.leaseStartDate === '')
+            result.leaseStartDate = null;
+        if (result.leaseEndDate === '')
+            result.leaseEndDate = null;
         return result;
     }
     validateFields(dto) {
@@ -71,7 +112,7 @@ let SavePropertyUseCase = class SavePropertyUseCase {
                 throw new common_1.BadRequestException(`MPRN ${dto.electricityMprn} is already in use by property ${conflict.code}`);
             }
         }
-        if (dto.gasGprn) {
+        if (dto.gasGprn && dto.gasGprn.trim().toUpperCase() !== 'N/A') {
             const conflict = await this.repo.findByGprn(dto.gasGprn);
             if (conflict && conflict.id !== dto.id) {
                 throw new common_1.BadRequestException(`GPRN ${dto.gasGprn} is already in use by property ${conflict.code}`);
@@ -84,6 +125,6 @@ exports.SavePropertyUseCase = SavePropertyUseCase = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Inject)(property_repository_1.PROPERTY_REPOSITORY)),
     __param(1, (0, common_1.Inject)(landlord_repository_1.LANDLORD_REPOSITORY)),
-    __metadata("design:paramtypes", [Object, Object])
+    __metadata("design:paramtypes", [Object, Object, audit_log_service_1.AuditLogService])
 ], SavePropertyUseCase);
 //# sourceMappingURL=save-property.use-case.js.map

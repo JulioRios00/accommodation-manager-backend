@@ -18,6 +18,7 @@ const get_residents_use_case_1 = require("../../application/use-cases/get-reside
 const save_resident_use_case_1 = require("../../application/use-cases/save-resident.use-case");
 const delete_resident_use_case_1 = require("../../application/use-cases/delete-resident.use-case");
 const roles_decorator_1 = require("../decorators/roles.decorator");
+const current_actor_decorator_1 = require("../decorators/current-actor.decorator");
 let ResidentsController = class ResidentsController {
     constructor(getResidents, saveResident, deleteResident) {
         this.getResidents = getResidents;
@@ -27,14 +28,14 @@ let ResidentsController = class ResidentsController {
     async findAll() {
         return this.getResidents.execute();
     }
-    async create(dto) {
-        return this.saveResident.execute(dto);
+    async create(dto, actor) {
+        return this.saveResident.execute(dto, actor);
     }
-    async update(id, dto) {
-        return this.saveResident.execute({ ...dto, id });
+    async update(id, dto, actor) {
+        return this.saveResident.execute({ ...dto, id }, actor);
     }
-    async remove(id) {
-        await this.deleteResident.execute(id);
+    async remove(id, actor) {
+        await this.deleteResident.execute(id, actor);
     }
 };
 exports.ResidentsController = ResidentsController;
@@ -46,28 +47,31 @@ __decorate([
 ], ResidentsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Post)(),
-    (0, roles_decorator_1.Roles)('sysadmin', 'manager'),
+    (0, roles_decorator_1.Roles)('sysadmin', 'manager', 'administrator', 'staff', 'maintenance'),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_actor_decorator_1.CurrentActor)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], ResidentsController.prototype, "create", null);
 __decorate([
     (0, common_1.Put)(':id'),
-    (0, roles_decorator_1.Roles)('sysadmin', 'manager', 'administrator'),
+    (0, roles_decorator_1.Roles)('sysadmin', 'manager', 'administrator', 'staff', 'maintenance'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_actor_decorator_1.CurrentActor)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", Promise)
 ], ResidentsController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     (0, common_1.HttpCode)(204),
-    (0, roles_decorator_1.Roles)('sysadmin', 'manager'),
+    (0, roles_decorator_1.Roles)('sysadmin', 'manager', 'administrator', 'staff', 'maintenance'),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_actor_decorator_1.CurrentActor)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], ResidentsController.prototype, "remove", null);
 exports.ResidentsController = ResidentsController = __decorate([

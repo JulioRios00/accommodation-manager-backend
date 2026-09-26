@@ -1,6 +1,7 @@
 import { Property } from '../../domain/property/property.entity';
 import { IPropertyRepository } from '../../domain/property/property.repository';
 import { ILandlordRepository } from '../../domain/landlord/landlord.repository';
+import { Actor, AuditLogService } from '../services/audit-log.service';
 export interface SavePropertyDto {
     id?: string;
     code: string;
@@ -48,14 +49,21 @@ export interface SavePropertyDto {
     propertyEmail?: string | null;
     paymentReference?: string | null;
     propertySupplier?: string | null;
+    paymentNotes?: string | null;
+    landlordPaymentDueDay?: number | null;
+    residentPaymentDueDay?: number | null;
     officeKeysComment?: string | null;
     landlordId?: string | null;
+    leaseStartDate?: string | null;
+    leaseEndDate?: string | null;
+    active?: boolean;
 }
 export declare class SavePropertyUseCase {
     private readonly repo;
     private readonly landlordRepo;
-    constructor(repo: IPropertyRepository, landlordRepo: ILandlordRepository);
-    execute(dto: SavePropertyDto): Promise<Property>;
+    private readonly auditLog;
+    constructor(repo: IPropertyRepository, landlordRepo: ILandlordRepository, auditLog: AuditLogService);
+    execute(dto: SavePropertyDto, actor?: Actor): Promise<Property>;
     private normalize;
     private validateFields;
     private validateLandlord;

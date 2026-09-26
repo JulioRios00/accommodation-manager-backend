@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+require("dotenv/config");
 require("./instrument");
 const node_crypto_1 = require("node:crypto");
 if (!globalThis.crypto)
@@ -11,7 +12,9 @@ async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule, { bufferLogs: true });
     app.useLogger(app.get(nestjs_pino_1.Logger));
     app.setGlobalPrefix('api');
-    app.enableCors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000' });
+    app.enableCors({
+        origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    });
     const port = process.env.PORT ?? 3001;
     await app.listen(port);
 }

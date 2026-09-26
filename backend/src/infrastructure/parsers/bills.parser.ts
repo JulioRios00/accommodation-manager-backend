@@ -54,6 +54,15 @@ function toStr(v: any): string | null {
   return s === '' ? null : s;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// The "Property Email" cell sometimes ends up holding pasted landlord/agent contact
+// notes instead of a single address — only accept values that actually look like one.
+function toEmail(v: any): string | null {
+  const s = toStr(v);
+  return s && EMAIL_RE.test(s) ? s : null;
+}
+
 function toNum(v: any): number | null {
   if (v === null || v === undefined) return null;
   const n = Number(v);
@@ -89,7 +98,7 @@ export function parseBills(buffer: Buffer): ParsedBills {
         gasAccountNumber: toStr(r[7]),
         gasPin: toStr(r[8]),
         crn: toStr(r[9]),
-        propertyEmail: toStr(r[10]),
+        propertyEmail: toEmail(r[10]),
         keyCode: toStr(r[11]),
       });
     }

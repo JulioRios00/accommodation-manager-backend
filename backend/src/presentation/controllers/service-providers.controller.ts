@@ -16,17 +16,17 @@ export class ServiceProvidersController {
   async findAll() { return this.getServiceProviders.execute(); }
 
   @Post()
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async create(@Body() dto: SaveServiceProviderDto) { return this.saveServiceProvider.execute(dto); }
 
   @Put(':id')
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async update(@Param('id') id: string, @Body() dto: SaveServiceProviderDto) {
     return this.saveServiceProvider.execute({ ...dto, id });
   }
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async remove(@Param('id') id: string) { await this.deleteServiceProvider.execute(id); }
 }

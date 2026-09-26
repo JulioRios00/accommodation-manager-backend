@@ -4,6 +4,7 @@ export interface BookingBed {
     bedNumber: number;
     name: string | null;
     bedroomType: string;
+    bedroomName: string | null;
     propertyId: string;
     propertyCode: string | null;
 }

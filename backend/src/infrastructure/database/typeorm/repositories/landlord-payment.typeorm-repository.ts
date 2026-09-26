@@ -23,6 +23,15 @@ export class LandlordPaymentTypeOrmRepository implements ILandlordPaymentReposit
   }
 
   async save(payment: Partial<LandlordPayment>): Promise<LandlordPayment> {
+    if (payment.id) {
+      // For updates: fetch existing and merge changes
+      const existing = await this.repo.findOne({ where: { id: payment.id } });
+      if (existing) {
+        const merged = this.repo.merge(existing, payment as DeepPartial<LandlordPaymentOrmEntity>);
+        return this.toDomain(await this.repo.save(merged));
+      }
+    }
+    // For creates: just create a new entity
     const e = this.repo.create(payment as DeepPartial<LandlordPaymentOrmEntity>);
     return this.toDomain(await this.repo.save(e));
   }

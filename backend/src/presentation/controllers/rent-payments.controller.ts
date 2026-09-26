@@ -3,7 +3,13 @@ import { GetRentPaymentsUseCase } from '../../application/use-cases/get-rent-pay
 import { SaveRentPaymentUseCase, SaveRentPaymentDto } from '../../application/use-cases/save-rent-payment.use-case';
 import { DeleteRentPaymentUseCase } from '../../application/use-cases/delete-rent-payment.use-case';
 import { AddRentInstallmentUseCase, AddRentInstallmentDto } from '../../application/use-cases/add-rent-installment.use-case';
+import { GenerateUpcomingRentPaymentsUseCase } from '../../application/use-cases/generate-upcoming-rent-payments.use-case';
+import { GetReceivablesLedgerUseCase } from '../../application/use-cases/get-receivables-ledger.use-case';
+import { MarkRentPaymentReceivedUseCase } from '../../application/use-cases/mark-rent-payment-received.use-case';
 import { Roles } from '../decorators/roles.decorator';
+import { RequireFeatureFlag } from '../decorators/require-feature-flag.decorator';
+import { CurrentActor } from '../decorators/current-actor.decorator';
+import { Actor } from '../../application/services/audit-log.service';
 
 @Controller('rent-payments')
 export class RentPaymentsController {
@@ -12,7 +18,23 @@ export class RentPaymentsController {
     private readonly saveRentPayment: SaveRentPaymentUseCase,
     private readonly deleteRentPayment: DeleteRentPaymentUseCase,
     private readonly addInstallment: AddRentInstallmentUseCase,
+    private readonly generateUpcoming: GenerateUpcomingRentPaymentsUseCase,
+    private readonly getReceivablesLedger: GetReceivablesLedgerUseCase,
+    private readonly markReceived: MarkRentPaymentReceivedUseCase,
   ) {}
+
+  @Get('ledger')
+  @RequireFeatureFlag('receivables_ledger')
+  async ledger() {
+    return this.getReceivablesLedger.execute();
+  }
+
+  @Post(':id/mark-received')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff')
+  @RequireFeatureFlag('receivables_ledger')
+  async markAsReceived(@Param('id') id: string, @CurrentActor() actor?: Actor) {
+    return this.markReceived.execute(id, actor);
+  }
 
   @Get()
   async findAll(
@@ -24,23 +46,27 @@ export class RentPaymentsController {
   }
 
   @Post()
-  @Roles('sysadmin', 'manager', 'administrator')
-  async create(@Body() dto: SaveRentPaymentDto) { return this.saveRentPayment.execute(dto); }
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
+  async create(@Body() dto: SaveRentPaymentDto, @CurrentActor() actor?: Actor) { return this.saveRentPayment.execute(dto, actor); }
 
   @Put(':id')
-  @Roles('sysadmin', 'manager', 'administrator')
-  async update(@Param('id') id: string, @Body() dto: SaveRentPaymentDto) {
-    return this.saveRentPayment.execute({ ...dto, id });
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
+  async update(@Param('id') id: string, @Body() dto: SaveRentPaymentDto, @CurrentActor() actor?: Actor) {
+    return this.saveRentPayment.execute({ ...dto, id }, actor);
   }
 
   @Delete(':id')
   @HttpCode(204)
-  @Roles('sysadmin', 'manager')
-  async remove(@Param('id') id: string) { await this.deleteRentPayment.execute(id); }
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
+  async remove(@Param('id') id: string, @CurrentActor() actor?: Actor) { await this.deleteRentPayment.execute(id, actor); }
 
   @Post(':id/installments')
-  @Roles('sysadmin', 'manager', 'administrator')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async addPayment(@Param('id') rentPaymentId: string, @Body() dto: AddRentInstallmentDto) {
     return this.addInstallment.execute({ ...dto, rentPaymentId });
   }
+
+  @Post('generate-upcoming')
+  @Roles('sysadmin', 'manager')
+  async generateUpcomingNow() { return this.generateUpcoming.execute(); }
 }

@@ -1,5 +1,6 @@
 export interface ParsedRow {
     code: string;
+    eirCode: string | null;
     bu: string;
     area: string | null;
     fullAddress: string | null;
@@ -9,7 +10,11 @@ export interface ParsedRow {
     fobCount: number;
     electricityStatus: string | null;
     gasStatus: string | null;
-    bedNumber: number;
+    landlordPaymentDueDay: number | null;
+    residentPaymentDueDay: number | null;
+    bedNumber: number | null;
+    bedroomLetter: string | null;
+    bedNumberRaw: string | null;
     bedroomType: string;
     sex: string;
     bedSize: string;
@@ -42,4 +47,10 @@ export interface ParsedRow {
     tempCheckInDate: Date | null;
     tempContractEndDate: Date | null;
 }
-export declare function parseXlsx(buffer: Buffer): ParsedRow[];
+export declare function parseBedNumber(value: any): {
+    bedNumber: number | null;
+    bedroomLetter: string | null;
+    bedNumberRaw: string | null;
+};
+export declare function parseXlsx(buffer: Buffer, sheetName?: string, required?: boolean): ParsedRow[];
+export declare function parsePropertyStatuses(buffer: Buffer, sheetName?: string): Map<string, boolean>;

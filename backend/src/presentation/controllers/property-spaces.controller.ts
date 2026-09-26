@@ -24,31 +24,31 @@ export class PropertySpacesController {
   }
 
   @Post()
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   create(@Body() dto: SavePropertySpaceDto) {
     return this.saveSpace.execute(dto);
   }
 
   @Put(':id')
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   update(@Param('id') id: string, @Body() dto: SavePropertySpaceDto) {
     return this.saveSpace.execute({ ...dto, id });
   }
 
   @Delete(':id')
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   remove(@Param('id') id: string) {
     return this.deleteSpace.execute(id);
   }
 
   @Post(':id/items')
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   addItem(@Param('id') spaceId: string, @Body() dto: Omit<SaveSpaceItemDto, 'spaceId'>) {
     return this.saveItem.execute({ ...dto, spaceId });
   }
 
   @Put(':id/items/:itemId')
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   updateItem(
     @Param('id') spaceId: string,
     @Param('itemId') itemId: string,
@@ -58,7 +58,7 @@ export class PropertySpacesController {
   }
 
   @Delete(':id/items/:itemId')
-  @Roles('sysadmin', 'manager')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   removeItem(@Param('itemId') itemId: string) {
     return this.deleteItem.execute(itemId);
   }

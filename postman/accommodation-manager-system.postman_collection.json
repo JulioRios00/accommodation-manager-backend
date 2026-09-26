@@ -136,6 +136,19 @@
               "path": ["health", "metrics"]
             }
           }
+        },
+        {
+          "name": "Trigger test error (Sentry)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/debug-sentry",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "debug-sentry"]
+            },
+            "description": "Throws a plain Error to verify Sentry is capturing backend errors. Expect a 500 response here — that's expected; check the Sentry dashboard for the event afterward."
+          }
         }
       ]
     },

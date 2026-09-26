@@ -1,5 +1,6 @@
 export declare class DashboardStatsDto {
     totalProperties: number;
+    inactiveProperties: number;
     totalBeds: number;
     occupiedBeds: number;
     availableBeds: number;

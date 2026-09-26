@@ -18,6 +18,7 @@ const get_bookings_use_case_1 = require("../../application/use-cases/get-booking
 const save_booking_use_case_1 = require("../../application/use-cases/save-booking.use-case");
 const delete_booking_use_case_1 = require("../../application/use-cases/delete-booking.use-case");
 const roles_decorator_1 = require("../decorators/roles.decorator");
+const current_actor_decorator_1 = require("../decorators/current-actor.decorator");
 let BookingsController = class BookingsController {
     constructor(getBookings, saveBooking, deleteBooking) {
         this.getBookings = getBookings;
@@ -27,14 +28,14 @@ let BookingsController = class BookingsController {
     async findAll(status) {
         return this.getBookings.execute(status);
     }
-    async create(dto) {
-        return this.saveBooking.execute(dto);
+    async create(dto, actor) {
+        return this.saveBooking.execute(dto, actor);
     }
-    async update(id, dto) {
-        return this.saveBooking.execute({ ...dto, id });
+    async update(id, dto, actor) {
+        return this.saveBooking.execute({ ...dto, id }, actor);
     }
-    async remove(id) {
-        await this.deleteBooking.execute(id);
+    async remove(id, actor) {
+        await this.deleteBooking.execute(id, actor);
     }
 };
 exports.BookingsController = BookingsController;
@@ -47,28 +48,31 @@ __decorate([
 ], BookingsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Post)(),
-    (0, roles_decorator_1.Roles)('sysadmin', 'manager'),
+    (0, roles_decorator_1.Roles)('sysadmin', 'manager', 'administrator', 'staff', 'maintenance'),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_actor_decorator_1.CurrentActor)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], BookingsController.prototype, "create", null);
 __decorate([
     (0, common_1.Put)(':id'),
-    (0, roles_decorator_1.Roles)('sysadmin', 'manager'),
+    (0, roles_decorator_1.Roles)('sysadmin', 'manager', 'administrator', 'staff', 'maintenance'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_actor_decorator_1.CurrentActor)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", Promise)
 ], BookingsController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     (0, common_1.HttpCode)(204),
-    (0, roles_decorator_1.Roles)('sysadmin', 'manager'),
+    (0, roles_decorator_1.Roles)('sysadmin', 'manager', 'administrator', 'staff', 'maintenance'),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_actor_decorator_1.CurrentActor)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], BookingsController.prototype, "remove", null);
 exports.BookingsController = BookingsController = __decorate([

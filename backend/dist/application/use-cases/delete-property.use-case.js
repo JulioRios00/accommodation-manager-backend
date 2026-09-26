@@ -17,13 +17,15 @@ const common_1 = require("@nestjs/common");
 const property_repository_1 = require("../../domain/property/property.repository");
 const bed_repository_1 = require("../../domain/bed/bed.repository");
 const booking_repository_1 = require("../../domain/booking/booking.repository");
+const audit_log_service_1 = require("../services/audit-log.service");
 let DeletePropertyUseCase = class DeletePropertyUseCase {
-    constructor(propertyRepo, bedRepo, bookingRepo) {
+    constructor(propertyRepo, bedRepo, bookingRepo, auditLog) {
         this.propertyRepo = propertyRepo;
         this.bedRepo = bedRepo;
         this.bookingRepo = bookingRepo;
+        this.auditLog = auditLog;
     }
-    async execute(id) {
+    async execute(id, actor) {
         const existing = await this.propertyRepo.findById(id);
         if (!existing)
             throw new common_1.NotFoundException(`Property ${id} not found`);
@@ -33,6 +35,13 @@ let DeletePropertyUseCase = class DeletePropertyUseCase {
         }
         await this.bedRepo.deleteByPropertyId(id);
         await this.propertyRepo.delete(id);
+        await this.auditLog.record({
+            actor,
+            action: 'delete',
+            entityType: 'Property',
+            entityId: id,
+            before: existing,
+        });
     }
 };
 exports.DeletePropertyUseCase = DeletePropertyUseCase;
@@ -41,6 +50,6 @@ exports.DeletePropertyUseCase = DeletePropertyUseCase = __decorate([
     __param(0, (0, common_1.Inject)(property_repository_1.PROPERTY_REPOSITORY)),
     __param(1, (0, common_1.Inject)(bed_repository_1.BED_REPOSITORY)),
     __param(2, (0, common_1.Inject)(booking_repository_1.BOOKING_REPOSITORY)),
-    __metadata("design:paramtypes", [Object, Object, Object])
+    __metadata("design:paramtypes", [Object, Object, Object, audit_log_service_1.AuditLogService])
 ], DeletePropertyUseCase);
 //# sourceMappingURL=delete-property.use-case.js.map

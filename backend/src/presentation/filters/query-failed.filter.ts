@@ -1,7 +1,12 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus, Logger } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import { Response } from 'express';
 import { QueryFailedError } from 'typeorm';
 
+// Registered AFTER SentryGlobalFilter in app.module.ts (Nest reverses global-filter order
+// before matching, so the later-registered one is checked first — see app.module.ts comment),
+// so this filter wins for QueryFailedError and SentryGlobalFilter never sees these exceptions.
+// Reports to Sentry itself here instead, so DB errors still get captured.
 @Catch(QueryFailedError)
 export class QueryFailedFilter implements ExceptionFilter {
   private readonly logger = new Logger(QueryFailedFilter.name);
@@ -13,6 +18,7 @@ export class QueryFailedFilter implements ExceptionFilter {
     const message = (exception as any).message as string;
 
     this.logger.error(`QueryFailedError: ${message}`, exception.stack);
+    Sentry.captureException(exception, { mechanism: { handled: true, type: 'query-failed-filter' } });
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let clientMessage = 'A database error occurred. Please check your input and try again.';

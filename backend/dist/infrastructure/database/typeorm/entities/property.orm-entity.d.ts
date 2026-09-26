@@ -47,8 +47,13 @@ export declare class PropertyOrmEntity {
     propertyEmail: string;
     paymentReference: string;
     propertySupplier: string;
+    paymentNotes: string;
+    landlordPaymentDueDay: number;
+    residentPaymentDueDay: number;
     officeKeysComment: string;
     landlordId: string;
+    leaseStartDate: Date;
+    leaseEndDate: Date;
     active: boolean;
     createdAt: Date;
     updatedAt: Date;

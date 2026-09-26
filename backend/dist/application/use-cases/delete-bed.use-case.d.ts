@@ -1,8 +1,10 @@
 import { IBedRepository } from '../../domain/bed/bed.repository';
 import { IBookingRepository } from '../../domain/booking/booking.repository';
+import { Actor, AuditLogService } from '../services/audit-log.service';
 export declare class DeleteBedUseCase {
     private readonly bedRepo;
     private readonly bookingRepo;
-    constructor(bedRepo: IBedRepository, bookingRepo: IBookingRepository);
-    execute(id: string): Promise<void>;
+    private readonly auditLog;
+    constructor(bedRepo: IBedRepository, bookingRepo: IBookingRepository, auditLog: AuditLogService);
+    execute(id: string, actor?: Actor): Promise<void>;
 }

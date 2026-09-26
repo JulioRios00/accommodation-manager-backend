@@ -127,15 +127,22 @@ export PORT="3001"
 export CORS_ORIGIN="http://localhost:3000"
 export NODE_ENV="development"
 
-# Load extra vars from backend/.env (SENTRY_DSN, CLERK_SECRET_KEY, etc.)
-# Only export keys not already set by this script (DB_*, PORT, etc.)
+# Load extra vars from backend/.env (SENTRY_DSN, CLERK_SECRET_KEY, CLERK_JWT_KEY, etc.)
+# Sourced (not read line-by-line) so quoted multi-line values — e.g. a PEM key — parse
+# correctly. Local-dev DB_*/PORT/CORS_ORIGIN/NODE_ENV set above always win, and
+# DATABASE_URL is never pulled in locally (use the individual DB_* vars instead).
 if [[ -f "$BACKEND_DIR/.env" ]]; then
-  while IFS='=' read -r key rest; do
-    [[ -z "$key" || "$key" == \#* ]] && continue
-    # Skip vars we set explicitly above, and DATABASE_URL (use local DB_* instead)
-    [[ "$key" =~ ^(DATABASE_URL|DB_HOST|DB_PORT|DB_USER|DB_PASSWORD|DB_NAME|PORT|CORS_ORIGIN|NODE_ENV)$ ]] && continue
-    export "$key"="$rest"
-  done < "$BACKEND_DIR/.env"
+  _saved_db_host=$DB_HOST _saved_db_port=$DB_PORT _saved_db_user=$DB_USER
+  _saved_db_password=$DB_PASSWORD _saved_db_name=$DB_NAME _saved_port=$PORT
+  _saved_cors=$CORS_ORIGIN _saved_node_env=$NODE_ENV
+  set -a
+  # shellcheck source=/dev/null
+  source "$BACKEND_DIR/.env"
+  set +a
+  export DB_HOST=$_saved_db_host DB_PORT=$_saved_db_port DB_USER=$_saved_db_user \
+         DB_PASSWORD=$_saved_db_password DB_NAME=$_saved_db_name PORT=$_saved_port \
+         CORS_ORIGIN=$_saved_cors NODE_ENV=$_saved_node_env
+  unset DATABASE_URL
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
