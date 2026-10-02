@@ -52,6 +52,7 @@ import { ImportMaintenanceUseCase } from './application/use-cases/import-mainten
 import { ImportDepositsUseCase } from './application/use-cases/import-deposits.use-case';
 import { ImportLandlordPaymentsUseCase } from './application/use-cases/import-landlord-payments.use-case';
 import { ImportResidentPaymentsUseCase } from './application/use-cases/import-resident-payments.use-case';
+import { BackfillDepositResidentsUseCase } from './application/use-cases/backfill-deposit-residents.use-case';
 import { GetDashboardStatsUseCase } from './application/use-cases/get-dashboard-stats.use-case';
 import { GetPropertiesUseCase } from './application/use-cases/get-properties.use-case';
 import { GetBedsUseCase } from './application/use-cases/get-beds.use-case';
@@ -196,6 +197,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     { provide: APP_GUARD, useClass: FeatureFlagGuard },
     ImportJobsService,
     ImportXlsxUseCase, ImportBillsUseCase, ImportMaintenanceUseCase, ImportDepositsUseCase, ImportLandlordPaymentsUseCase, ImportResidentPaymentsUseCase, ImportResidentsToClerkUseCase,
+    BackfillDepositResidentsUseCase,
     GetDashboardStatsUseCase,
     GetPropertiesUseCase, GetBedsUseCase, GetResidentsUseCase, GetBookingsUseCase,
     SavePropertyUseCase, DeletePropertyUseCase, HardDeletePropertyUseCase, SaveBedUseCase, DeleteBedUseCase,

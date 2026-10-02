@@ -8,6 +8,7 @@ import { ImportDepositsUseCase } from '../../application/use-cases/import-deposi
 import { ImportLandlordPaymentsUseCase } from '../../application/use-cases/import-landlord-payments.use-case';
 import { ImportResidentPaymentsUseCase } from '../../application/use-cases/import-resident-payments.use-case';
 import { ImportResidentsToClerkUseCase } from '../../application/use-cases/import-residents-to-clerk.use-case';
+import { BackfillDepositResidentsUseCase } from '../../application/use-cases/backfill-deposit-residents.use-case';
 import { ImportSkipReason } from '../../application/use-cases/import-deposits.use-case';
 import { Roles } from '../decorators/roles.decorator';
 
@@ -44,6 +45,7 @@ export class ImportController {
     private readonly importLandlordPaymentsUseCase: ImportLandlordPaymentsUseCase,
     private readonly importResidentPaymentsUseCase: ImportResidentPaymentsUseCase,
     private readonly importResidentsToClerkUseCase: ImportResidentsToClerkUseCase,
+    private readonly backfillDepositResidentsUseCase: BackfillDepositResidentsUseCase,
   ) {}
 
   // The full Control + CheckedOut sheet can run to thousands of rows, each needing several
@@ -142,6 +144,16 @@ export class ImportController {
     const result = await this.importResidentsToClerkUseCase.execute(file.buffer);
     return {
       message: `Clerk provisioning complete — ${result.created} created, ${result.skipped} skipped, ${result.errors.length} errors`,
+      ...result,
+    };
+  }
+
+  @Get('backfill-deposit-residents')
+  @Roles('sysadmin', 'manager')
+  async backfillDepositResidents() {
+    const result = await this.backfillDepositResidentsUseCase.execute();
+    return {
+      message: `Backfill complete — ${result.matched}/${result.processed} linked (${result.exactMatches} exact, ${result.partialMatches} partial)${result.unmatched.length > 0 ? `, ${result.unmatched.length} unmatched` : ''}`,
       ...result,
     };
   }
