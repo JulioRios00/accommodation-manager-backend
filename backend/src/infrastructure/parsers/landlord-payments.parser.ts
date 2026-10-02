@@ -10,6 +10,8 @@ export interface ParsedLandlordPaymentRow {
   paymentReference: string | null;
   notes: string | null;
   supplier: string | null;
+  landlordPaymentDueDay: number | null;
+  residentPaymentDueDay: number | null;
 }
 
 const MONTH_MAP: Record<string, string> = {
@@ -78,6 +80,13 @@ export function parseLandlordPayments(buffer: Buffer): ParsedLandlordPaymentRow[
     const refCol = col('payment ref');
     const notesCol = col('notes');
     const supplierCol = col('supplier');
+    // Find columns containing both keywords (e.g. "Landlord Payment Due Day", "Resident Due Day")
+    const landlordDueCol = headers.findIndex((h: any) =>
+      typeof h === 'string' && h.toLowerCase().includes('landlord') && h.toLowerCase().includes('due'),
+    );
+    const residentDueCol = headers.findIndex((h: any) =>
+      typeof h === 'string' && h.toLowerCase().includes('resident') && h.toLowerCase().includes('due'),
+    );
 
     for (let i = headerRow + 1; i < rows.length; i++) {
       const r = rows[i];
@@ -95,6 +104,8 @@ export function parseLandlordPayments(buffer: Buffer): ParsedLandlordPaymentRow[
         paymentReference: refCol >= 0 ? toStr(r[refCol]) : null,
         notes: notesCol >= 0 ? toStr(r[notesCol]) : null,
         supplier: supplierCol >= 0 ? toStr(r[supplierCol]) : null,
+        landlordPaymentDueDay: landlordDueCol >= 0 ? toNum(r[landlordDueCol]) : null,
+        residentPaymentDueDay: residentDueCol >= 0 ? toNum(r[residentDueCol]) : null,
       });
     }
   }

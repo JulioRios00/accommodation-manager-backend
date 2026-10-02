@@ -123,9 +123,11 @@ export class SaveBookingUseCase {
 
     if (startDate && endDate) {
       const overlapping = await this.repo.findOverlappingActive(dto.bedId, startDate, endDate, dto.id);
-      if (overlapping.length > 0) {
+      // Filter out the booking being edited — should already be done by repository, but double-check
+      const actualConflicts = overlapping.filter(b => b.id !== dto.id);
+      if (actualConflicts.length > 0) {
         throw new BadRequestException(
-          `Bed is already allocated during the selected period (conflicts with booking ${overlapping[0].id})`,
+          `Bed is already allocated during the selected period (conflicts with booking ${actualConflicts[0].id})`,
         );
       }
     }

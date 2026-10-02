@@ -45,7 +45,15 @@ export class ImportLandlordPaymentsUseCase {
       if (row.paymentReference) property.paymentReference = row.paymentReference;
       if (row.supplier) property.propertySupplier = row.supplier;
       if (row.notes) property.paymentNotes = row.notes;
-      if (row.paymentReference || row.supplier || row.notes) propertiesToUpdate.add(property.id);
+      if (row.landlordPaymentDueDay !== null && row.landlordPaymentDueDay !== undefined) {
+        property.landlordPaymentDueDay = row.landlordPaymentDueDay;
+      }
+      if (row.residentPaymentDueDay !== null && row.residentPaymentDueDay !== undefined) {
+        property.residentPaymentDueDay = row.residentPaymentDueDay;
+      }
+      if (row.paymentReference || row.supplier || row.notes || row.landlordPaymentDueDay !== null || row.residentPaymentDueDay !== null) {
+        propertiesToUpdate.add(property.id);
+      }
 
       const key = `${property.id}|${row.month}`;
       if (existingKeys.has(key)) { skip(identifier, 'Duplicate payment (already imported)'); continue; }
