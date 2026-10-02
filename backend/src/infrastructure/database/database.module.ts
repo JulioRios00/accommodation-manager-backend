@@ -27,6 +27,8 @@ import { EmailTemplateOrmEntity } from './typeorm/entities/email-template.orm-en
 import { NotificationOrmEntity } from './typeorm/entities/notification.orm-entity';
 import { FeatureFlagOrmEntity } from './typeorm/entities/feature-flag.orm-entity';
 import { SavedReportOrmEntity } from './typeorm/entities/saved-report.orm-entity';
+import { MaintenanceIssueOrmEntity } from './typeorm/entities/maintenance-issue.orm-entity';
+import { ErrorLogOrmEntity } from './typeorm/entities/error-log.orm-entity';
 
 import { PropertyTypeOrmRepository } from './typeorm/repositories/property.typeorm-repository';
 import { BedTypeOrmRepository } from './typeorm/repositories/bed.typeorm-repository';
@@ -52,6 +54,8 @@ import { EmailTemplateTypeOrmRepository } from './typeorm/repositories/email-tem
 import { NotificationTypeOrmRepository } from './typeorm/repositories/notification.typeorm-repository';
 import { FeatureFlagTypeOrmRepository } from './typeorm/repositories/feature-flag.typeorm-repository';
 import { SavedReportTypeOrmRepository } from './typeorm/repositories/saved-report.typeorm-repository';
+import { MaintenanceIssueTypeOrmRepository } from './typeorm/repositories/maintenance-issue.typeorm-repository';
+import { ErrorLogTypeOrmRepository } from './typeorm/repositories/error-log.typeorm-repository';
 
 import { PROPERTY_REPOSITORY } from '../../domain/property/property.repository';
 import { BED_REPOSITORY } from '../../domain/bed/bed.repository';
@@ -77,15 +81,17 @@ import { EMAIL_TEMPLATE_REPOSITORY } from '../../domain/email-template/email-tem
 import { NOTIFICATION_REPOSITORY } from '../../domain/notification/notification.repository';
 import { FEATURE_FLAG_REPOSITORY } from '../../domain/feature-flag/feature-flag.repository';
 import { SAVED_REPORT_REPOSITORY } from '../../domain/saved-report/saved-report.repository';
+import { MAINTENANCE_ISSUE_REPOSITORY } from '../../domain/maintenance-issue/maintenance-issue.repository';
+import { ERROR_LOG_REPOSITORY } from '../../domain/error-log/error-log.repository';
 
 const ALL_ENTITIES = [
   PropertyOrmEntity, BedOrmEntity, BedroomOrmEntity, ResidentOrmEntity, BookingOrmEntity,
   LandlordOrmEntity, PropertyAdministratorOrmEntity, ServiceProviderOrmEntity,
-  MaintenanceTicketOrmEntity, TicketActivityLogOrmEntity, KeyLogOrmEntity,
+  MaintenanceTicketOrmEntity, MaintenanceIssueOrmEntity, TicketActivityLogOrmEntity, KeyLogOrmEntity,
   CheckoutRecordOrmEntity, RentPaymentOrmEntity, RentPaymentInstallmentOrmEntity,
   LandlordPaymentOrmEntity, DepositTransactionOrmEntity, CompanyOrmEntity, AuditLogOrmEntity,
   PropertySpaceOrmEntity, SpaceItemOrmEntity, RolePermissionOrmEntity, BedRateHistoryOrmEntity,
-  EmailTemplateOrmEntity, FeatureFlagOrmEntity, NotificationOrmEntity, SavedReportOrmEntity,
+  EmailTemplateOrmEntity, FeatureFlagOrmEntity, NotificationOrmEntity, SavedReportOrmEntity, ErrorLogOrmEntity,
 ];
 
 @Module({
@@ -123,6 +129,7 @@ const ALL_ENTITIES = [
     { provide: PROPERTY_ADMINISTRATOR_REPOSITORY, useClass: PropertyAdministratorTypeOrmRepository },
     { provide: SERVICE_PROVIDER_REPOSITORY, useClass: ServiceProviderTypeOrmRepository },
     { provide: MAINTENANCE_TICKET_REPOSITORY, useClass: MaintenanceTicketTypeOrmRepository },
+    { provide: MAINTENANCE_ISSUE_REPOSITORY, useClass: MaintenanceIssueTypeOrmRepository },
     { provide: TICKET_ACTIVITY_LOG_REPOSITORY, useClass: TicketActivityLogTypeOrmRepository },
     { provide: KEY_LOG_REPOSITORY, useClass: KeyLogTypeOrmRepository },
     { provide: CHECKOUT_RECORD_REPOSITORY, useClass: CheckoutRecordTypeOrmRepository },
@@ -140,15 +147,16 @@ const ALL_ENTITIES = [
     { provide: NOTIFICATION_REPOSITORY, useClass: NotificationTypeOrmRepository },
     { provide: FEATURE_FLAG_REPOSITORY, useClass: FeatureFlagTypeOrmRepository },
     { provide: SAVED_REPORT_REPOSITORY, useClass: SavedReportTypeOrmRepository },
+    { provide: ERROR_LOG_REPOSITORY, useClass: ErrorLogTypeOrmRepository },
   ],
   exports: [
     PROPERTY_REPOSITORY, BED_REPOSITORY, BEDROOM_REPOSITORY, RESIDENT_REPOSITORY, BOOKING_REPOSITORY,
     LANDLORD_REPOSITORY, PROPERTY_ADMINISTRATOR_REPOSITORY, SERVICE_PROVIDER_REPOSITORY,
-    MAINTENANCE_TICKET_REPOSITORY, TICKET_ACTIVITY_LOG_REPOSITORY, KEY_LOG_REPOSITORY,
+    MAINTENANCE_TICKET_REPOSITORY, MAINTENANCE_ISSUE_REPOSITORY, TICKET_ACTIVITY_LOG_REPOSITORY, KEY_LOG_REPOSITORY,
     CHECKOUT_RECORD_REPOSITORY, RENT_PAYMENT_REPOSITORY, RENT_PAYMENT_INSTALLMENT_REPOSITORY,
     LANDLORD_PAYMENT_REPOSITORY, DEPOSIT_TRANSACTION_REPOSITORY, COMPANY_REPOSITORY, AUDIT_LOG_REPOSITORY,
     PROPERTY_SPACE_REPOSITORY, SPACE_ITEM_REPOSITORY, ROLE_PERMISSION_REPOSITORY, BED_RATE_HISTORY_REPOSITORY,
-    EMAIL_TEMPLATE_REPOSITORY, FEATURE_FLAG_REPOSITORY, NOTIFICATION_REPOSITORY, SAVED_REPORT_REPOSITORY,
+    EMAIL_TEMPLATE_REPOSITORY, FEATURE_FLAG_REPOSITORY, NOTIFICATION_REPOSITORY, SAVED_REPORT_REPOSITORY, ERROR_LOG_REPOSITORY,
   ],
 })
 export class DatabaseModule {}

@@ -6,6 +6,7 @@ import { ImportDepositsUseCase } from '../../application/use-cases/import-deposi
 import { ImportLandlordPaymentsUseCase } from '../../application/use-cases/import-landlord-payments.use-case';
 import { ImportResidentPaymentsUseCase } from '../../application/use-cases/import-resident-payments.use-case';
 import { ImportResidentsToClerkUseCase } from '../../application/use-cases/import-residents-to-clerk.use-case';
+import { BackfillDepositResidentsUseCase } from '../../application/use-cases/backfill-deposit-residents.use-case';
 import { ImportSkipReason } from '../../application/use-cases/import-deposits.use-case';
 export declare class ImportController {
     private readonly importJobs;
@@ -16,8 +17,9 @@ export declare class ImportController {
     private readonly importLandlordPaymentsUseCase;
     private readonly importResidentPaymentsUseCase;
     private readonly importResidentsToClerkUseCase;
+    private readonly backfillDepositResidentsUseCase;
     private readonly logger;
-    constructor(importJobs: ImportJobsService, importXlsxUseCase: ImportXlsxUseCase, importBillsUseCase: ImportBillsUseCase, importMaintenanceUseCase: ImportMaintenanceUseCase, importDepositsUseCase: ImportDepositsUseCase, importLandlordPaymentsUseCase: ImportLandlordPaymentsUseCase, importResidentPaymentsUseCase: ImportResidentPaymentsUseCase, importResidentsToClerkUseCase: ImportResidentsToClerkUseCase);
+    constructor(importJobs: ImportJobsService, importXlsxUseCase: ImportXlsxUseCase, importBillsUseCase: ImportBillsUseCase, importMaintenanceUseCase: ImportMaintenanceUseCase, importDepositsUseCase: ImportDepositsUseCase, importLandlordPaymentsUseCase: ImportLandlordPaymentsUseCase, importResidentPaymentsUseCase: ImportResidentPaymentsUseCase, importResidentsToClerkUseCase: ImportResidentsToClerkUseCase, backfillDepositResidentsUseCase: BackfillDepositResidentsUseCase);
     importAccommodation(file: Express.Multer.File): {
         jobId: string;
     };
@@ -60,6 +62,17 @@ export declare class ImportController {
             email: string;
             reason: string;
         }[];
+        message: string;
+    }>;
+    backfillDepositResidents(): Promise<{
+        processed: number;
+        matched: number;
+        exactMatches: number;
+        partialMatches: number;
+        unmatched: Array<{
+            depositId: string;
+            residentName: string;
+        }>;
         message: string;
     }>;
 }

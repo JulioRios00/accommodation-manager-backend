@@ -24,6 +24,7 @@ const import_deposits_use_case_1 = require("../../application/use-cases/import-d
 const import_landlord_payments_use_case_1 = require("../../application/use-cases/import-landlord-payments.use-case");
 const import_resident_payments_use_case_1 = require("../../application/use-cases/import-resident-payments.use-case");
 const import_residents_to_clerk_use_case_1 = require("../../application/use-cases/import-residents-to-clerk.use-case");
+const backfill_deposit_residents_use_case_1 = require("../../application/use-cases/backfill-deposit-residents.use-case");
 const roles_decorator_1 = require("../decorators/roles.decorator");
 const fileGuard = (file) => {
     if (!file)
@@ -43,7 +44,7 @@ const summarizeSkips = (skipReasons) => {
         .join(', ');
 };
 let ImportController = ImportController_1 = class ImportController {
-    constructor(importJobs, importXlsxUseCase, importBillsUseCase, importMaintenanceUseCase, importDepositsUseCase, importLandlordPaymentsUseCase, importResidentPaymentsUseCase, importResidentsToClerkUseCase) {
+    constructor(importJobs, importXlsxUseCase, importBillsUseCase, importMaintenanceUseCase, importDepositsUseCase, importLandlordPaymentsUseCase, importResidentPaymentsUseCase, importResidentsToClerkUseCase, backfillDepositResidentsUseCase) {
         this.importJobs = importJobs;
         this.importXlsxUseCase = importXlsxUseCase;
         this.importBillsUseCase = importBillsUseCase;
@@ -52,6 +53,7 @@ let ImportController = ImportController_1 = class ImportController {
         this.importLandlordPaymentsUseCase = importLandlordPaymentsUseCase;
         this.importResidentPaymentsUseCase = importResidentPaymentsUseCase;
         this.importResidentsToClerkUseCase = importResidentsToClerkUseCase;
+        this.backfillDepositResidentsUseCase = backfillDepositResidentsUseCase;
         this.logger = new common_1.Logger(ImportController_1.name);
     }
     importAccommodation(file) {
@@ -114,6 +116,13 @@ let ImportController = ImportController_1 = class ImportController {
         const result = await this.importResidentsToClerkUseCase.execute(file.buffer);
         return {
             message: `Clerk provisioning complete — ${result.created} created, ${result.skipped} skipped, ${result.errors.length} errors`,
+            ...result,
+        };
+    }
+    async backfillDepositResidents() {
+        const result = await this.backfillDepositResidentsUseCase.execute();
+        return {
+            message: `Backfill complete — ${result.matched}/${result.processed} linked (${result.exactMatches} exact, ${result.partialMatches} partial)${result.unmatched.length > 0 ? `, ${result.unmatched.length} unmatched` : ''}`,
             ...result,
         };
     }
@@ -190,6 +199,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], ImportController.prototype, "importResidentsToClerk", null);
+__decorate([
+    (0, common_1.Get)('backfill-deposit-residents'),
+    (0, roles_decorator_1.Roles)('sysadmin', 'manager'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ImportController.prototype, "backfillDepositResidents", null);
 exports.ImportController = ImportController = ImportController_1 = __decorate([
     (0, common_1.Controller)('import'),
     __metadata("design:paramtypes", [import_jobs_service_1.ImportJobsService,
@@ -199,6 +215,7 @@ exports.ImportController = ImportController = ImportController_1 = __decorate([
         import_deposits_use_case_1.ImportDepositsUseCase,
         import_landlord_payments_use_case_1.ImportLandlordPaymentsUseCase,
         import_resident_payments_use_case_1.ImportResidentPaymentsUseCase,
-        import_residents_to_clerk_use_case_1.ImportResidentsToClerkUseCase])
+        import_residents_to_clerk_use_case_1.ImportResidentsToClerkUseCase,
+        backfill_deposit_residents_use_case_1.BackfillDepositResidentsUseCase])
 ], ImportController);
 //# sourceMappingURL=import.controller.js.map

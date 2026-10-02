@@ -58,7 +58,7 @@ export class BackfillDepositResidentsUseCase {
       // Update deposit with matched resident
       await this.depositRepo.save({
         id: deposit.id,
-        residentId: matched.id,
+        residentId: matched.resident.id,
       });
 
       result.matched++;

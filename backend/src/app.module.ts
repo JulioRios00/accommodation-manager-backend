@@ -44,6 +44,7 @@ import { FeatureFlagsController } from './presentation/controllers/feature-flags
 import { BedroomsController } from './presentation/controllers/bedrooms.controller';
 import { UsersController } from './presentation/controllers/users.controller';
 import { RolePermissionsController } from './presentation/controllers/role-permissions.controller';
+import { ErrorLogsController } from './presentation/controllers/error-logs.controller';
 
 import { ImportXlsxUseCase } from './application/use-cases/import-xlsx.use-case';
 import { ImportBillsUseCase } from './application/use-cases/import-bills.use-case';
@@ -180,7 +181,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     LandlordsController, ServiceProvidersController, MaintenanceTicketsController, PortalController,
     KeyLogsController, CheckoutController, RentPaymentsController, LandlordPaymentsController,
     DepositTransactionsController, ReportsController, CustomReportsController, EmailTemplatesController, FeatureFlagsController, CompaniesController, BedroomsController,
-    PropertySpacesController, UsersController, RolePermissionsController, AuditLogsController,
+    PropertySpacesController, UsersController, RolePermissionsController, AuditLogsController, ErrorLogsController,
   ],
   providers: [
     // Nest internally reverses global-filter registration order before matching (see

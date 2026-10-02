@@ -52,6 +52,7 @@ const feature_flags_controller_1 = require("./presentation/controllers/feature-f
 const bedrooms_controller_1 = require("./presentation/controllers/bedrooms.controller");
 const users_controller_1 = require("./presentation/controllers/users.controller");
 const role_permissions_controller_1 = require("./presentation/controllers/role-permissions.controller");
+const error_logs_controller_1 = require("./presentation/controllers/error-logs.controller");
 const import_xlsx_use_case_1 = require("./application/use-cases/import-xlsx.use-case");
 const import_bills_use_case_1 = require("./application/use-cases/import-bills.use-case");
 const import_residents_to_clerk_use_case_1 = require("./application/use-cases/import-residents-to-clerk.use-case");
@@ -59,6 +60,7 @@ const import_maintenance_use_case_1 = require("./application/use-cases/import-ma
 const import_deposits_use_case_1 = require("./application/use-cases/import-deposits.use-case");
 const import_landlord_payments_use_case_1 = require("./application/use-cases/import-landlord-payments.use-case");
 const import_resident_payments_use_case_1 = require("./application/use-cases/import-resident-payments.use-case");
+const backfill_deposit_residents_use_case_1 = require("./application/use-cases/backfill-deposit-residents.use-case");
 const get_dashboard_stats_use_case_1 = require("./application/use-cases/get-dashboard-stats.use-case");
 const get_properties_use_case_1 = require("./application/use-cases/get-properties.use-case");
 const get_beds_use_case_1 = require("./application/use-cases/get-beds.use-case");
@@ -190,7 +192,7 @@ exports.AppModule = AppModule = __decorate([
             landlords_controller_1.LandlordsController, service_providers_controller_1.ServiceProvidersController, maintenance_tickets_controller_1.MaintenanceTicketsController, portal_controller_1.PortalController,
             key_logs_controller_1.KeyLogsController, checkout_controller_1.CheckoutController, rent_payments_controller_1.RentPaymentsController, landlord_payments_controller_1.LandlordPaymentsController,
             deposit_transactions_controller_1.DepositTransactionsController, reports_controller_1.ReportsController, custom_reports_controller_1.CustomReportsController, email_templates_controller_1.EmailTemplatesController, feature_flags_controller_1.FeatureFlagsController, companies_controller_1.CompaniesController, bedrooms_controller_1.BedroomsController,
-            property_spaces_controller_1.PropertySpacesController, users_controller_1.UsersController, role_permissions_controller_1.RolePermissionsController, audit_logs_controller_1.AuditLogsController,
+            property_spaces_controller_1.PropertySpacesController, users_controller_1.UsersController, role_permissions_controller_1.RolePermissionsController, audit_logs_controller_1.AuditLogsController, error_logs_controller_1.ErrorLogsController,
         ],
         providers: [
             { provide: core_1.APP_FILTER, useClass: setup_1.SentryGlobalFilter },
@@ -200,6 +202,7 @@ exports.AppModule = AppModule = __decorate([
             { provide: core_1.APP_GUARD, useClass: feature_flag_guard_1.FeatureFlagGuard },
             import_jobs_service_1.ImportJobsService,
             import_xlsx_use_case_1.ImportXlsxUseCase, import_bills_use_case_1.ImportBillsUseCase, import_maintenance_use_case_1.ImportMaintenanceUseCase, import_deposits_use_case_1.ImportDepositsUseCase, import_landlord_payments_use_case_1.ImportLandlordPaymentsUseCase, import_resident_payments_use_case_1.ImportResidentPaymentsUseCase, import_residents_to_clerk_use_case_1.ImportResidentsToClerkUseCase,
+            backfill_deposit_residents_use_case_1.BackfillDepositResidentsUseCase,
             get_dashboard_stats_use_case_1.GetDashboardStatsUseCase,
             get_properties_use_case_1.GetPropertiesUseCase, get_beds_use_case_1.GetBedsUseCase, get_residents_use_case_1.GetResidentsUseCase, get_bookings_use_case_1.GetBookingsUseCase,
             save_property_use_case_1.SavePropertyUseCase, delete_property_use_case_1.DeletePropertyUseCase, hard_delete_property_use_case_1.HardDeletePropertyUseCase, save_bed_use_case_1.SaveBedUseCase, delete_bed_use_case_1.DeleteBedUseCase,

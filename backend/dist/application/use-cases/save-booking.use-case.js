@@ -53,11 +53,28 @@ let SaveBookingUseCase = class SaveBookingUseCase {
             }
         }
         let status = dto.status;
-        if (startDate && status !== 'completed') {
+        if (status !== 'completed') {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            startDate.setHours(0, 0, 0, 0);
-            status = startDate > today ? 'upcoming' : 'active';
+            if (startDate)
+                startDate.setHours(0, 0, 0, 0);
+            if (endDate)
+                endDate.setHours(0, 0, 0, 0);
+            const checkOutDate = dto.checkOutDate ? new Date(dto.checkOutDate) : null;
+            if (checkOutDate)
+                checkOutDate.setHours(0, 0, 0, 0);
+            if (startDate && startDate > today) {
+                status = 'upcoming';
+            }
+            else if (checkOutDate && checkOutDate < today) {
+                status = 'completed';
+            }
+            else if (endDate && endDate < today) {
+                status = 'completed';
+            }
+            else if (startDate && startDate <= today) {
+                status = 'active';
+            }
         }
         if (dto.status === 'active') {
             const activeBookings = await this.repo.findAllActiveByResidentId(dto.residentId);
@@ -77,8 +94,9 @@ let SaveBookingUseCase = class SaveBookingUseCase {
         }
         if (startDate && endDate) {
             const overlapping = await this.repo.findOverlappingActive(dto.bedId, startDate, endDate, dto.id);
-            if (overlapping.length > 0) {
-                throw new common_1.BadRequestException(`Bed is already allocated during the selected period (conflicts with booking ${overlapping[0].id})`);
+            const actualConflicts = overlapping.filter(b => b.id !== dto.id);
+            if (actualConflicts.length > 0) {
+                throw new common_1.BadRequestException(`Bed is already allocated during the selected period (conflicts with booking ${actualConflicts[0].id})`);
             }
         }
         let existing = null;
