@@ -73,13 +73,32 @@ export class SaveBookingUseCase {
       }
     }
 
-    // Auto-determine booking status based on check-in date if not explicitly setting to 'completed'
+    // Auto-determine booking status based on all three dates (check-in, check-out, contract end)
     let status = dto.status;
-    if (startDate && status !== 'completed') {
+    if (status !== 'completed') {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      startDate.setHours(0, 0, 0, 0);
-      status = startDate > today ? 'upcoming' : 'active';
+
+      if (startDate) startDate.setHours(0, 0, 0, 0);
+      if (endDate) endDate.setHours(0, 0, 0, 0);
+      const checkOutDate = dto.checkOutDate ? new Date(dto.checkOutDate) : null;
+      if (checkOutDate) checkOutDate.setHours(0, 0, 0, 0);
+
+      // Check-in is in the future
+      if (startDate && startDate > today) {
+        status = 'upcoming';
+      }
+      // Check-out is in the past, or contract end is in the past
+      else if (checkOutDate && checkOutDate < today) {
+        status = 'completed';
+      }
+      else if (endDate && endDate < today) {
+        status = 'completed';
+      }
+      // Check-in is today or past, and no check-out in past, and no contract end in past
+      else if (startDate && startDate <= today) {
+        status = 'active';
+      }
     }
 
     // A resident can hold more than one active booking (e.g. current one ending this month,
