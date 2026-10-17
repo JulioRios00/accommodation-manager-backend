@@ -40,6 +40,7 @@ import { ReportsController } from './presentation/controllers/reports.controller
 import { CustomReportsController } from './presentation/controllers/custom-reports.controller';
 import { CompaniesController } from './presentation/controllers/companies.controller';
 import { EmailTemplatesController } from './presentation/controllers/email-templates.controller';
+import { CompanyProfileController } from './presentation/controllers/company-profile.controller';
 import { FeatureFlagsController } from './presentation/controllers/feature-flags.controller';
 import { BedroomsController } from './presentation/controllers/bedrooms.controller';
 import { UsersController } from './presentation/controllers/users.controller';
@@ -90,6 +91,8 @@ import { SaveRentPaymentUseCase } from './application/use-cases/save-rent-paymen
 import { DeleteRentPaymentUseCase } from './application/use-cases/delete-rent-payment.use-case';
 import { AddRentInstallmentUseCase } from './application/use-cases/add-rent-installment.use-case';
 import { GetReceivablesLedgerUseCase } from './application/use-cases/get-receivables-ledger.use-case';
+import { GetCompanyProfileUseCase } from './application/use-cases/get-company-profile.use-case';
+import { SaveCompanyProfileUseCase } from './application/use-cases/save-company-profile.use-case';
 import { FeatureFlagService } from './application/services/feature-flag.service';
 import { MarkRentPaymentReceivedUseCase } from './application/use-cases/mark-rent-payment-received.use-case';
 import { GetEmailTemplateUseCase } from './application/use-cases/get-email-template.use-case';
@@ -180,7 +183,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     ResidentsController, BookingsController, HealthController,
     LandlordsController, ServiceProvidersController, MaintenanceTicketsController, PortalController,
     KeyLogsController, CheckoutController, RentPaymentsController, LandlordPaymentsController,
-    DepositTransactionsController, ReportsController, CustomReportsController, EmailTemplatesController, FeatureFlagsController, CompaniesController, BedroomsController,
+    DepositTransactionsController, ReportsController, CustomReportsController, EmailTemplatesController, FeatureFlagsController, CompanyProfileController, CompaniesController, BedroomsController,
     PropertySpacesController, UsersController, RolePermissionsController, AuditLogsController, ErrorLogsController,
   ],
   providers: [
@@ -211,6 +214,8 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     CheckoutUseCase,
     GetRentPaymentsUseCase, SaveRentPaymentUseCase, DeleteRentPaymentUseCase, AddRentInstallmentUseCase,
     FeatureFlagService,
+    GetCompanyProfileUseCase,
+    SaveCompanyProfileUseCase,
     GetReceivablesLedgerUseCase, MarkRentPaymentReceivedUseCase,
     GetEmailTemplateUseCase, SaveEmailTemplateUseCase, EscalateOverdueRentPaymentsUseCase,
     EmailService, RentPaymentEscalationCron,

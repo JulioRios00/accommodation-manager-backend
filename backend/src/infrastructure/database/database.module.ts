@@ -25,6 +25,7 @@ import { RolePermissionOrmEntity } from './typeorm/entities/role-permission.orm-
 import { BedRateHistoryOrmEntity } from './typeorm/entities/bed-rate-history.orm-entity';
 import { EmailTemplateOrmEntity } from './typeorm/entities/email-template.orm-entity';
 import { NotificationOrmEntity } from './typeorm/entities/notification.orm-entity';
+import { CompanyProfileOrmEntity } from './typeorm/entities/company-profile.orm-entity';
 import { FeatureFlagOrmEntity } from './typeorm/entities/feature-flag.orm-entity';
 import { SavedReportOrmEntity } from './typeorm/entities/saved-report.orm-entity';
 import { MaintenanceIssueOrmEntity } from './typeorm/entities/maintenance-issue.orm-entity';
@@ -52,6 +53,7 @@ import { RolePermissionTypeOrmRepository } from './typeorm/repositories/role-per
 import { BedRateHistoryTypeOrmRepository } from './typeorm/repositories/bed-rate-history.typeorm-repository';
 import { EmailTemplateTypeOrmRepository } from './typeorm/repositories/email-template.typeorm-repository';
 import { NotificationTypeOrmRepository } from './typeorm/repositories/notification.typeorm-repository';
+import { CompanyProfileTypeOrmRepository } from './typeorm/repositories/company-profile.typeorm-repository';
 import { FeatureFlagTypeOrmRepository } from './typeorm/repositories/feature-flag.typeorm-repository';
 import { SavedReportTypeOrmRepository } from './typeorm/repositories/saved-report.typeorm-repository';
 import { MaintenanceIssueTypeOrmRepository } from './typeorm/repositories/maintenance-issue.typeorm-repository';
@@ -79,6 +81,7 @@ import { ROLE_PERMISSION_REPOSITORY } from '../../domain/role-permission/role-pe
 import { BED_RATE_HISTORY_REPOSITORY } from '../../domain/bed-rate-history/bed-rate-history.repository';
 import { EMAIL_TEMPLATE_REPOSITORY } from '../../domain/email-template/email-template.repository';
 import { NOTIFICATION_REPOSITORY } from '../../domain/notification/notification.repository';
+import { COMPANY_PROFILE_REPOSITORY } from '../../domain/company-profile/company-profile.repository';
 import { FEATURE_FLAG_REPOSITORY } from '../../domain/feature-flag/feature-flag.repository';
 import { SAVED_REPORT_REPOSITORY } from '../../domain/saved-report/saved-report.repository';
 import { MAINTENANCE_ISSUE_REPOSITORY } from '../../domain/maintenance-issue/maintenance-issue.repository';
@@ -91,7 +94,7 @@ const ALL_ENTITIES = [
   CheckoutRecordOrmEntity, RentPaymentOrmEntity, RentPaymentInstallmentOrmEntity,
   LandlordPaymentOrmEntity, DepositTransactionOrmEntity, CompanyOrmEntity, AuditLogOrmEntity,
   PropertySpaceOrmEntity, SpaceItemOrmEntity, RolePermissionOrmEntity, BedRateHistoryOrmEntity,
-  EmailTemplateOrmEntity, FeatureFlagOrmEntity, NotificationOrmEntity, SavedReportOrmEntity, ErrorLogOrmEntity,
+  EmailTemplateOrmEntity, FeatureFlagOrmEntity, CompanyProfileOrmEntity, NotificationOrmEntity, SavedReportOrmEntity, ErrorLogOrmEntity,
 ];
 
 @Module({
@@ -146,6 +149,7 @@ const ALL_ENTITIES = [
     { provide: EMAIL_TEMPLATE_REPOSITORY, useClass: EmailTemplateTypeOrmRepository },
     { provide: NOTIFICATION_REPOSITORY, useClass: NotificationTypeOrmRepository },
     { provide: FEATURE_FLAG_REPOSITORY, useClass: FeatureFlagTypeOrmRepository },
+    { provide: COMPANY_PROFILE_REPOSITORY, useClass: CompanyProfileTypeOrmRepository },
     { provide: SAVED_REPORT_REPOSITORY, useClass: SavedReportTypeOrmRepository },
     { provide: ERROR_LOG_REPOSITORY, useClass: ErrorLogTypeOrmRepository },
   ],
@@ -156,7 +160,7 @@ const ALL_ENTITIES = [
     CHECKOUT_RECORD_REPOSITORY, RENT_PAYMENT_REPOSITORY, RENT_PAYMENT_INSTALLMENT_REPOSITORY,
     LANDLORD_PAYMENT_REPOSITORY, DEPOSIT_TRANSACTION_REPOSITORY, COMPANY_REPOSITORY, AUDIT_LOG_REPOSITORY,
     PROPERTY_SPACE_REPOSITORY, SPACE_ITEM_REPOSITORY, ROLE_PERMISSION_REPOSITORY, BED_RATE_HISTORY_REPOSITORY,
-    EMAIL_TEMPLATE_REPOSITORY, FEATURE_FLAG_REPOSITORY, NOTIFICATION_REPOSITORY, SAVED_REPORT_REPOSITORY, ERROR_LOG_REPOSITORY,
+    EMAIL_TEMPLATE_REPOSITORY, FEATURE_FLAG_REPOSITORY, COMPANY_PROFILE_REPOSITORY, NOTIFICATION_REPOSITORY, SAVED_REPORT_REPOSITORY, ERROR_LOG_REPOSITORY,
   ],
 })
 export class DatabaseModule {}

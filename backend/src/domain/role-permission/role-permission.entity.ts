@@ -25,6 +25,7 @@ export const SECTIONS = [
   'Import Data',
   'User Management',
   'Activity Log',
+  'Company Profile',
 ] as const;
 
 export type Section = (typeof SECTIONS)[number];
