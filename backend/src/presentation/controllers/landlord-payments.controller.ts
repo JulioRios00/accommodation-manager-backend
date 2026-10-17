@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, Res, ValidationPipe } from '@nestjs/common';
 import { Response } from 'express';
 import { GetLandlordPaymentsUseCase } from '../../application/use-cases/get-landlord-payments.use-case';
 import { SaveLandlordPaymentUseCase, SaveLandlordPaymentDto } from '../../application/use-cases/save-landlord-payment.use-case';
@@ -12,6 +12,12 @@ import { Roles } from '../decorators/roles.decorator';
 import { RequireFeatureFlag } from '../decorators/require-feature-flag.decorator';
 import { CurrentActor } from '../decorators/current-actor.decorator';
 import { Actor } from '../../application/services/audit-log.service';
+
+/** Scoped to the two write handlers below rather than registered globally, so no other
+ *  module's request handling changes. `whitelist` drops the server-managed fields the edit
+ *  dialog echoes back (active, createdAt, updatedAt) instead of letting them reach
+ *  TypeORM's merge, and `transform` is what applies the DTO's @Transform coercions. */
+const savePipe = new ValidationPipe({ whitelist: true, transform: true });
 
 @Controller('landlord-payments')
 export class LandlordPaymentsController {
@@ -68,11 +74,11 @@ export class LandlordPaymentsController {
 
   @Post()
   @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
-  async create(@Body() dto: SaveLandlordPaymentDto) { return this.saveLandlordPayment.execute(dto); }
+  async create(@Body(savePipe) dto: SaveLandlordPaymentDto) { return this.saveLandlordPayment.execute(dto); }
 
   @Put(':id')
   @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
-  async update(@Param('id') id: string, @Body() dto: SaveLandlordPaymentDto) {
+  async update(@Param('id') id: string, @Body(savePipe) dto: SaveLandlordPaymentDto) {
     return this.saveLandlordPayment.execute({ ...dto, id });
   }
 

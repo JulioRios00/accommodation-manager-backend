@@ -113,7 +113,7 @@ export class ImportController {
     fileGuard(file);
     const result = await this.importDepositsUseCase.execute(file.buffer);
     const skipNote = result.skipped ? ` — ${summarizeSkips(result.skipReasons)}` : '';
-    return { message: `Imported ${result.imported} deposit transactions (${result.skipped} skipped${skipNote})`, ...result };
+    return { message: `Imported ${result.imported} deposit transactions, updated ${result.updated} (${result.skipped} skipped${skipNote})`, ...result };
   }
 
   @Post('landlord-payments')
