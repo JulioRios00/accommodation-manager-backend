@@ -142,6 +142,7 @@ import { DeleteSpaceItemUseCase } from './application/use-cases/delete-space-ite
 import { PropertySpacesController } from './presentation/controllers/property-spaces.controller';
 import { GetRolePermissionsUseCase } from './application/use-cases/get-role-permissions.use-case';
 import { GetAuditLogsUseCase } from './application/use-cases/get-audit-logs.use-case';
+import { AuditLogContextService } from './application/services/audit-log-context.service';
 import { AuditLogService } from './application/services/audit-log.service';
 import { ImportJobsService } from './application/services/import-jobs.service';
 import { AuditLogsController } from './presentation/controllers/audit-logs.controller';
@@ -235,7 +236,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     SaveSpaceItemUseCase, DeleteSpaceItemUseCase,
     GetRolePermissionsUseCase, SaveRolePermissionsUseCase,
     GenerateUpcomingRentPaymentsUseCase, GenerateUpcomingLandlordPaymentsUseCase, PaymentGenerationCron,
-    GetAuditLogsUseCase, AuditLogService,
+    GetAuditLogsUseCase, AuditLogService, AuditLogContextService,
     TransitionExpiredBookingsUseCase, SyncPropertyLeaseStatusUseCase, BookingStatusCron,
   ],
 })
