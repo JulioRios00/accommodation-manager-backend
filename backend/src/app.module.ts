@@ -87,6 +87,7 @@ import { SaveKeyLogUseCase } from './application/use-cases/save-key-log.use-case
 import { DeleteKeyLogUseCase } from './application/use-cases/delete-key-log.use-case';
 import { CheckoutUseCase } from './application/use-cases/checkout.use-case';
 import { GetRentPaymentsUseCase } from './application/use-cases/get-rent-payments.use-case';
+import { GetRentInstallmentsUseCase } from './application/use-cases/get-rent-installments.use-case';
 import { SaveRentPaymentUseCase } from './application/use-cases/save-rent-payment.use-case';
 import { DeleteRentPaymentUseCase } from './application/use-cases/delete-rent-payment.use-case';
 import { AddRentInstallmentUseCase } from './application/use-cases/add-rent-installment.use-case';
@@ -212,7 +213,7 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     GetMaintenanceTicketsUseCase, SaveMaintenanceTicketUseCase, DeleteMaintenanceTicketUseCase, AddTicketActivityUseCase, ClaimTicketUseCase, CloseTicketUseCase, SubmitResidentTicketUseCase,
     GetKeyLogsUseCase, SaveKeyLogUseCase, DeleteKeyLogUseCase,
     CheckoutUseCase,
-    GetRentPaymentsUseCase, SaveRentPaymentUseCase, DeleteRentPaymentUseCase, AddRentInstallmentUseCase,
+    GetRentPaymentsUseCase, SaveRentPaymentUseCase, DeleteRentPaymentUseCase, AddRentInstallmentUseCase, GetRentInstallmentsUseCase,
     FeatureFlagService,
     GetCompanyProfileUseCase,
     SaveCompanyProfileUseCase,

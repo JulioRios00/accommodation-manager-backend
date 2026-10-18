@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, ValidationPipe } from '@nestjs/common';
 import { GetRentPaymentsUseCase } from '../../application/use-cases/get-rent-payments.use-case';
 import { SaveRentPaymentUseCase, SaveRentPaymentDto } from '../../application/use-cases/save-rent-payment.use-case';
 import { DeleteRentPaymentUseCase } from '../../application/use-cases/delete-rent-payment.use-case';
 import { AddRentInstallmentUseCase, AddRentInstallmentDto } from '../../application/use-cases/add-rent-installment.use-case';
+import { GetRentInstallmentsUseCase } from '../../application/use-cases/get-rent-installments.use-case';
 import { GenerateUpcomingRentPaymentsUseCase } from '../../application/use-cases/generate-upcoming-rent-payments.use-case';
 import { GetReceivablesLedgerUseCase } from '../../application/use-cases/get-receivables-ledger.use-case';
 import { MarkRentPaymentReceivedUseCase } from '../../application/use-cases/mark-rent-payment-received.use-case';
@@ -11,6 +12,11 @@ import { RequireFeatureFlag } from '../decorators/require-feature-flag.decorator
 import { CurrentActor } from '../decorators/current-actor.decorator';
 import { Actor } from '../../application/services/audit-log.service';
 
+/** Scoped to the installment handler rather than registered globally, so no other
+ *  module's request handling changes. `transform` is what coerces amount to a number
+ *  before it is added to the running total. */
+const installmentPipe = new ValidationPipe({ whitelist: true, transform: true });
+
 @Controller('rent-payments')
 export class RentPaymentsController {
   constructor(
@@ -18,6 +24,7 @@ export class RentPaymentsController {
     private readonly saveRentPayment: SaveRentPaymentUseCase,
     private readonly deleteRentPayment: DeleteRentPaymentUseCase,
     private readonly addInstallment: AddRentInstallmentUseCase,
+    private readonly getInstallments: GetRentInstallmentsUseCase,
     private readonly generateUpcoming: GenerateUpcomingRentPaymentsUseCase,
     private readonly getReceivablesLedger: GetReceivablesLedgerUseCase,
     private readonly markReceived: MarkRentPaymentReceivedUseCase,
@@ -60,10 +67,19 @@ export class RentPaymentsController {
   @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async remove(@Param('id') id: string, @CurrentActor() actor?: Actor) { await this.deleteRentPayment.execute(id, actor); }
 
+  @Get(':id/installments')
+  async listPayments(@Param('id') rentPaymentId: string) {
+    return this.getInstallments.execute(rentPaymentId);
+  }
+
   @Post(':id/installments')
   @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
-  async addPayment(@Param('id') rentPaymentId: string, @Body() dto: AddRentInstallmentDto) {
-    return this.addInstallment.execute({ ...dto, rentPaymentId });
+  async addPayment(
+    @Param('id') rentPaymentId: string,
+    @Body(installmentPipe) dto: AddRentInstallmentDto,
+    @CurrentActor() actor?: Actor,
+  ) {
+    return this.addInstallment.execute({ ...dto, rentPaymentId }, actor);
   }
 
   @Post('generate-upcoming')
