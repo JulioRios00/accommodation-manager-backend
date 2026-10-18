@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Transform } from 'class-transformer';
 import { IsDateString, IsIn, IsNumber, IsOptional, IsUUID, Matches, MaxLength } from 'class-validator';
 import { ILandlordPaymentRepository, LANDLORD_PAYMENT_REPOSITORY } from '../../domain/landlord-payment/landlord-payment.repository';
+import { Actor, AuditLogService } from '../services/audit-log.service';
 
 export const LANDLORD_PAYMENT_STATUSES = ['pending', 'paid', 'partial'] as const;
 
@@ -51,17 +52,49 @@ export class SaveLandlordPaymentDto {
 
 @Injectable()
 export class SaveLandlordPaymentUseCase {
-  constructor(@Inject(LANDLORD_PAYMENT_REPOSITORY) private readonly repo: ILandlordPaymentRepository) {}
+  constructor(
+    @Inject(LANDLORD_PAYMENT_REPOSITORY) private readonly repo: ILandlordPaymentRepository,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
-  async execute(dto: SaveLandlordPaymentDto) {
+  async execute(dto: SaveLandlordPaymentDto, actor?: Actor) {
     if (dto.id) {
       const existing = await this.repo.findById(dto.id);
       if (!existing) throw new NotFoundException(`LandlordPayment ${dto.id} not found`);
       // Only the keys actually supplied are passed on. The repository merges onto the loaded
       // row and merge ignores undefined, so an update that omits amountPaid or status leaves
       // them alone rather than resetting them to 0 / 'pending'.
-      return this.repo.save(dto as any);
+      const updated = await this.repo.save(dto as any);
+
+      // This path can set status/amountPaid/datePaid by hand, bypassing the audit-logged
+      // mark-paid action. Until that gap is closed, at least record who changed what —
+      // AuditLogService diffs the fields and drops no-op saves on its own.
+      await this.auditLog.record({
+        actor,
+        action: 'update',
+        entityType: 'LandlordPayment',
+        entityId: updated.id,
+        before: existing as unknown as Record<string, unknown>,
+        after: updated as unknown as Record<string, unknown>,
+      });
+
+      return updated;
     }
-    return this.repo.save({ ...dto, amountPaid: dto.amountPaid ?? 0, status: dto.status ?? 'pending' } as any);
+
+    const created = await this.repo.save({
+      ...dto,
+      amountPaid: dto.amountPaid ?? 0,
+      status: dto.status ?? 'pending',
+    } as any);
+
+    await this.auditLog.record({
+      actor,
+      action: 'create',
+      entityType: 'LandlordPayment',
+      entityId: created.id,
+      after: created as unknown as Record<string, unknown>,
+    });
+
+    return created;
   }
 }

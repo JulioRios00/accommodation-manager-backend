@@ -92,10 +92,11 @@ describe('SaveLandlordPaymentUseCase update semantics', () => {
     const repo = {
       findById: jest.fn().mockResolvedValue(existing),
       findAll: jest.fn(),
-      save: jest.fn().mockImplementation((p: any) => Promise.resolve(p)),
+      save: jest.fn().mockImplementation((p: any) => Promise.resolve({ id: 'abc', ...p })),
       delete: jest.fn(),
     };
-    return { repo, useCase: new SaveLandlordPaymentUseCase(repo as any) };
+    const auditLog = { record: jest.fn().mockResolvedValue(undefined) };
+    return { repo, auditLog, useCase: new SaveLandlordPaymentUseCase(repo as any, auditLog as any) };
   };
 
   it('does not reset amountPaid or status on an update that omits them', async () => {
@@ -119,6 +120,49 @@ describe('SaveLandlordPaymentUseCase update semantics', () => {
     await useCase.execute({ ...valid, id: 'abc', amountPaid: 1200, datePaid: '2026-09-09', status: 'paid' } as SaveLandlordPaymentDto);
     const saved = repo.save.mock.calls[0][0];
     expect(saved).toMatchObject({ id: 'abc', amountPaid: 1200, datePaid: '2026-09-09', status: 'paid' });
+  });
+
+  // Until the generic path stops being able to set 'paid' by hand, this is the only
+  // record of who did it — see the manual-status question in the disbursements review.
+  it('records who changed a payment, with the field diff', async () => {
+    const { auditLog, useCase } = build();
+    const actor = { userId: 'user_123', role: 'staff' };
+    await useCase.execute(
+      { ...valid, id: 'abc', status: 'paid', amountPaid: 1200, datePaid: '2026-09-09' } as SaveLandlordPaymentDto,
+      actor,
+    );
+    expect(auditLog.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actor,
+        action: 'update',
+        entityType: 'LandlordPayment',
+        entityId: 'abc',
+        before: expect.objectContaining({ status: 'partial' }),
+        after: expect.objectContaining({ status: 'paid' }),
+      }),
+    );
+  });
+
+  it('records creates too', async () => {
+    const { auditLog, useCase } = build();
+    await useCase.execute({ ...valid } as SaveLandlordPaymentDto, { userId: 'u1' });
+    expect(auditLog.record).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'create', entityType: 'LandlordPayment' }),
+    );
+  });
+
+  it('still saves when there is no authenticated actor', async () => {
+    const { repo, auditLog, useCase } = build();
+    await useCase.execute({ ...valid, id: 'abc' } as SaveLandlordPaymentDto);
+    expect(repo.save).toHaveBeenCalled();
+    expect(auditLog.record).toHaveBeenCalledWith(expect.objectContaining({ actor: undefined }));
+  });
+
+  it('does not log when the row was not found', async () => {
+    const { repo, auditLog, useCase } = build();
+    repo.findById.mockResolvedValue(null);
+    await expect(useCase.execute({ ...valid, id: 'nope' } as SaveLandlordPaymentDto)).rejects.toThrow();
+    expect(auditLog.record).not.toHaveBeenCalled();
   });
 
   it('404s on an unknown id', async () => {

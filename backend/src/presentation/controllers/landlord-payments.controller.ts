@@ -74,12 +74,14 @@ export class LandlordPaymentsController {
 
   @Post()
   @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
-  async create(@Body(savePipe) dto: SaveLandlordPaymentDto) { return this.saveLandlordPayment.execute(dto); }
+  async create(@Body(savePipe) dto: SaveLandlordPaymentDto, @CurrentActor() actor?: Actor) {
+    return this.saveLandlordPayment.execute(dto, actor);
+  }
 
   @Put(':id')
   @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
-  async update(@Param('id') id: string, @Body(savePipe) dto: SaveLandlordPaymentDto) {
-    return this.saveLandlordPayment.execute({ ...dto, id });
+  async update(@Param('id') id: string, @Body(savePipe) dto: SaveLandlordPaymentDto, @CurrentActor() actor?: Actor) {
+    return this.saveLandlordPayment.execute({ ...dto, id }, actor);
   }
 
   @Delete(':id')
