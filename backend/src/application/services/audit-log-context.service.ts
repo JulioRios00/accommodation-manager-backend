@@ -13,12 +13,17 @@ import { bedroomLetterFromName } from '../../domain/bed/bed-code.util';
 export interface AuditLogWithContext extends AuditLog {
   /** e.g. "Ana Silva — 136SV — 2026-10". Null when the record can't be resolved. */
   entityLabel: string | null;
-  /** Ids of the related records, so the UI can link through to them. */
+  /** The related records, with the text needed to find each one. The UI turns these
+   *  into links; names are included because the target pages locate records by
+   *  searching their visible text, not by id. */
   entityLinks: {
     residentId?: string;
+    residentName?: string;
     propertyId?: string;
+    propertyCode?: string;
     bookingId?: string;
     bedId?: string;
+    bedCode?: string;
     landlordId?: string;
   };
 }
@@ -122,7 +127,13 @@ export class AuditLogContextService {
         if (!p) return { label: null, links: {} };
         return {
           label: join(residentName.get(p.residentId), propertyCode.get(p.propertyId), p.month),
-          links: { residentId: p.residentId, propertyId: p.propertyId, bookingId: p.bookingId ?? undefined },
+          links: {
+            residentId: p.residentId,
+            residentName: residentName.get(p.residentId),
+            propertyId: p.propertyId,
+            propertyCode: propertyCode.get(p.propertyId),
+            bookingId: p.bookingId ?? undefined,
+          },
         };
       }
       case 'LandlordPayment': {
@@ -130,7 +141,11 @@ export class AuditLogContextService {
         if (!p) return { label: null, links: {} };
         return {
           label: join(propertyCode.get(p.propertyId), p.month),
-          links: { propertyId: p.propertyId, landlordId: p.landlordId ?? undefined },
+          links: {
+            propertyId: p.propertyId,
+            propertyCode: propertyCode.get(p.propertyId),
+            landlordId: p.landlordId ?? undefined,
+          },
         };
       }
       case 'Booking': {
@@ -138,7 +153,12 @@ export class AuditLogContextService {
         if (!b) return { label: null, links: {} };
         return {
           label: join(residentName.get(b.residentId), bedLabel(b.bedId)),
-          links: { residentId: b.residentId, bedId: b.bedId ?? undefined },
+          links: {
+            residentId: b.residentId,
+            residentName: residentName.get(b.residentId),
+            bedId: b.bedId ?? undefined,
+            bedCode: bedLabel(b.bedId) ?? undefined,
+          },
         };
       }
       case 'DepositTransaction': {
@@ -146,20 +166,27 @@ export class AuditLogContextService {
         if (!d) return { label: null, links: {} };
         return {
           label: join(d.residentName, propertyCode.get(d.propertyId), d.type),
-          links: { residentId: d.residentId ?? undefined, propertyId: d.propertyId, bedId: d.bedId ?? undefined },
+          links: {
+            residentId: d.residentId ?? undefined,
+            residentName: d.residentName ?? undefined,
+            propertyId: d.propertyId,
+            propertyCode: propertyCode.get(d.propertyId),
+            bedId: d.bedId ?? undefined,
+            bedCode: bedLabel(d.bedId) ?? undefined,
+          },
         };
       }
       case 'Resident': {
         const name = residentName.get(entityId);
-        return { label: name ?? null, links: name ? { residentId: entityId } : {} };
+        return { label: name ?? null, links: name ? { residentId: entityId, residentName: name } : {} };
       }
       case 'Property': {
         const code = propertyCode.get(entityId);
-        return { label: code ?? null, links: code ? { propertyId: entityId } : {} };
+        return { label: code ?? null, links: code ? { propertyId: entityId, propertyCode: code } : {} };
       }
       case 'Bed': {
         const label = bedLabel(entityId);
-        return { label, links: label ? { bedId: entityId } : {} };
+        return { label, links: label ? { bedId: entityId, bedCode: label } : {} };
       }
       default:
         // CustomReport and anything added later — no context rather than a wrong guess.

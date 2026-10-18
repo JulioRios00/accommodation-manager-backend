@@ -41,7 +41,11 @@ describe('AuditLogContextService', () => {
     const { service } = build();
     const [out] = await service.enrich([log()]);
     expect(out.entityLabel).toBe('Ana Silva — 136SV — 2026-10');
-    expect(out.entityLinks).toEqual({ residentId: 'res-1', propertyId: 'prop-1', bookingId: 'bk-1' });
+    expect(out.entityLinks).toEqual({
+      residentId: 'res-1', residentName: 'Ana Silva',
+      propertyId: 'prop-1', propertyCode: '136SV',
+      bookingId: 'bk-1',
+    });
   });
 
   it('labels a landlord payment with property and month', async () => {
@@ -70,6 +74,20 @@ describe('AuditLogContextService', () => {
     const { service } = build();
     const [out] = await service.enrich([log({ entityType: 'DepositTransaction', entityId: 'dt-1' })]);
     expect(out.entityLabel).toBe('Ana Silva — 136SV — refund');
+  });
+
+  // The target pages find records by searching their visible text, so the names have to
+  // travel with the ids or the links can't be built.
+  it('carries the names needed to build a link, not just ids', async () => {
+    const { service } = build();
+    const [booking] = await service.enrich([log({ entityType: 'Booking', entityId: 'bk-1' })]);
+    expect(booking.entityLinks).toMatchObject({ residentName: 'Ana Silva', bedCode: '136SV-C5' });
+
+    const [landlord] = await service.enrich([log({ entityType: 'LandlordPayment', entityId: 'lp-1' })]);
+    expect(landlord.entityLinks).toMatchObject({ propertyCode: '136SV' });
+
+    const [resident] = await service.enrich([log({ entityType: 'Resident', entityId: 'res-1' })]);
+    expect(resident.entityLinks).toMatchObject({ residentId: 'res-1', residentName: 'Ana Silva' });
   });
 
   // A deleted record must not hide its own history.
