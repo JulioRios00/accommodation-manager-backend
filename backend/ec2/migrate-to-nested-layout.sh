@@ -78,7 +78,10 @@ npm run build
 # -------------------------------------------------------------- 4. smoke test
 say "Smoke testing the new build on port $SMOKE_PORT (not touching the live app)"
 set +e
-PORT="$SMOKE_PORT" node dist/main.js > /tmp/migrate-smoke.log 2>&1 &
+# NODE_ENV=production matters: it is what ecosystem.config.js sets, and the logger
+# only reaches for the pino-pretty devDependency outside production. Smoke testing
+# without it tests a configuration PM2 will never run.
+NODE_ENV=production PORT="$SMOKE_PORT" node dist/main.js > /tmp/migrate-smoke.log 2>&1 &
 SMOKE_PID=$!
 for _ in $(seq 1 45); do
   grep -q "Nest application successfully started" /tmp/migrate-smoke.log && break
@@ -105,8 +108,16 @@ mv "$STAGE" "$LIVE"
 
 pm2 delete "$PM2_APP"
 cd "$LIVE/backend"
-# Started from backend/, so PM2 records that as cwd and dotenv finds .env there.
-pm2 start dist/main.js --name "$PM2_APP" --update-env
+# Start through the checked-in ecosystem config rather than a bare `pm2 start`: it
+# carries NODE_ENV, PORT, the log paths and max_memory_restart, so the running
+# process matches version control instead of whatever this shell happened to have.
+# Its cwd is hard-coded to the default path, so only trust it when that is where we are.
+if [ "$LIVE" = "/home/ubuntu/app" ] && [ -f ec2/ecosystem.config.js ]; then
+  pm2 start ec2/ecosystem.config.js
+else
+  echo "    (non-default BASE, starting without the ecosystem file)"
+  NODE_ENV=production PORT=3001 pm2 start dist/main.js --name "$PM2_APP" --update-env
+fi
 pm2 save
 
 say "Done"
