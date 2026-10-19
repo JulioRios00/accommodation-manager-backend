@@ -33,6 +33,7 @@ const role_permission_orm_entity_1 = require("./typeorm/entities/role-permission
 const bed_rate_history_orm_entity_1 = require("./typeorm/entities/bed-rate-history.orm-entity");
 const email_template_orm_entity_1 = require("./typeorm/entities/email-template.orm-entity");
 const notification_orm_entity_1 = require("./typeorm/entities/notification.orm-entity");
+const company_profile_orm_entity_1 = require("./typeorm/entities/company-profile.orm-entity");
 const feature_flag_orm_entity_1 = require("./typeorm/entities/feature-flag.orm-entity");
 const saved_report_orm_entity_1 = require("./typeorm/entities/saved-report.orm-entity");
 const maintenance_issue_orm_entity_1 = require("./typeorm/entities/maintenance-issue.orm-entity");
@@ -59,6 +60,7 @@ const role_permission_typeorm_repository_1 = require("./typeorm/repositories/rol
 const bed_rate_history_typeorm_repository_1 = require("./typeorm/repositories/bed-rate-history.typeorm-repository");
 const email_template_typeorm_repository_1 = require("./typeorm/repositories/email-template.typeorm-repository");
 const notification_typeorm_repository_1 = require("./typeorm/repositories/notification.typeorm-repository");
+const company_profile_typeorm_repository_1 = require("./typeorm/repositories/company-profile.typeorm-repository");
 const feature_flag_typeorm_repository_1 = require("./typeorm/repositories/feature-flag.typeorm-repository");
 const saved_report_typeorm_repository_1 = require("./typeorm/repositories/saved-report.typeorm-repository");
 const maintenance_issue_typeorm_repository_1 = require("./typeorm/repositories/maintenance-issue.typeorm-repository");
@@ -85,6 +87,7 @@ const role_permission_repository_1 = require("../../domain/role-permission/role-
 const bed_rate_history_repository_1 = require("../../domain/bed-rate-history/bed-rate-history.repository");
 const email_template_repository_1 = require("../../domain/email-template/email-template.repository");
 const notification_repository_1 = require("../../domain/notification/notification.repository");
+const company_profile_repository_1 = require("../../domain/company-profile/company-profile.repository");
 const feature_flag_repository_1 = require("../../domain/feature-flag/feature-flag.repository");
 const saved_report_repository_1 = require("../../domain/saved-report/saved-report.repository");
 const maintenance_issue_repository_1 = require("../../domain/maintenance-issue/maintenance-issue.repository");
@@ -96,7 +99,7 @@ const ALL_ENTITIES = [
     checkout_record_orm_entity_1.CheckoutRecordOrmEntity, rent_payment_orm_entity_1.RentPaymentOrmEntity, rent_payment_orm_entity_1.RentPaymentInstallmentOrmEntity,
     landlord_payment_orm_entity_1.LandlordPaymentOrmEntity, deposit_transaction_orm_entity_1.DepositTransactionOrmEntity, company_orm_entity_1.CompanyOrmEntity, audit_log_orm_entity_1.AuditLogOrmEntity,
     property_space_orm_entity_1.PropertySpaceOrmEntity, space_item_orm_entity_1.SpaceItemOrmEntity, role_permission_orm_entity_1.RolePermissionOrmEntity, bed_rate_history_orm_entity_1.BedRateHistoryOrmEntity,
-    email_template_orm_entity_1.EmailTemplateOrmEntity, feature_flag_orm_entity_1.FeatureFlagOrmEntity, notification_orm_entity_1.NotificationOrmEntity, saved_report_orm_entity_1.SavedReportOrmEntity, error_log_orm_entity_1.ErrorLogOrmEntity,
+    email_template_orm_entity_1.EmailTemplateOrmEntity, feature_flag_orm_entity_1.FeatureFlagOrmEntity, company_profile_orm_entity_1.CompanyProfileOrmEntity, notification_orm_entity_1.NotificationOrmEntity, saved_report_orm_entity_1.SavedReportOrmEntity, error_log_orm_entity_1.ErrorLogOrmEntity,
 ];
 let DatabaseModule = class DatabaseModule {
 };
@@ -154,6 +157,7 @@ exports.DatabaseModule = DatabaseModule = __decorate([
             { provide: email_template_repository_1.EMAIL_TEMPLATE_REPOSITORY, useClass: email_template_typeorm_repository_1.EmailTemplateTypeOrmRepository },
             { provide: notification_repository_1.NOTIFICATION_REPOSITORY, useClass: notification_typeorm_repository_1.NotificationTypeOrmRepository },
             { provide: feature_flag_repository_1.FEATURE_FLAG_REPOSITORY, useClass: feature_flag_typeorm_repository_1.FeatureFlagTypeOrmRepository },
+            { provide: company_profile_repository_1.COMPANY_PROFILE_REPOSITORY, useClass: company_profile_typeorm_repository_1.CompanyProfileTypeOrmRepository },
             { provide: saved_report_repository_1.SAVED_REPORT_REPOSITORY, useClass: saved_report_typeorm_repository_1.SavedReportTypeOrmRepository },
             { provide: error_log_repository_1.ERROR_LOG_REPOSITORY, useClass: error_log_typeorm_repository_1.ErrorLogTypeOrmRepository },
         ],
@@ -164,7 +168,7 @@ exports.DatabaseModule = DatabaseModule = __decorate([
             checkout_record_repository_1.CHECKOUT_RECORD_REPOSITORY, rent_payment_repository_1.RENT_PAYMENT_REPOSITORY, rent_payment_repository_1.RENT_PAYMENT_INSTALLMENT_REPOSITORY,
             landlord_payment_repository_1.LANDLORD_PAYMENT_REPOSITORY, deposit_transaction_repository_1.DEPOSIT_TRANSACTION_REPOSITORY, company_repository_1.COMPANY_REPOSITORY, audit_log_repository_1.AUDIT_LOG_REPOSITORY,
             property_space_repository_1.PROPERTY_SPACE_REPOSITORY, property_space_repository_1.SPACE_ITEM_REPOSITORY, role_permission_repository_1.ROLE_PERMISSION_REPOSITORY, bed_rate_history_repository_1.BED_RATE_HISTORY_REPOSITORY,
-            email_template_repository_1.EMAIL_TEMPLATE_REPOSITORY, feature_flag_repository_1.FEATURE_FLAG_REPOSITORY, notification_repository_1.NOTIFICATION_REPOSITORY, saved_report_repository_1.SAVED_REPORT_REPOSITORY, error_log_repository_1.ERROR_LOG_REPOSITORY,
+            email_template_repository_1.EMAIL_TEMPLATE_REPOSITORY, feature_flag_repository_1.FEATURE_FLAG_REPOSITORY, company_profile_repository_1.COMPANY_PROFILE_REPOSITORY, notification_repository_1.NOTIFICATION_REPOSITORY, saved_report_repository_1.SAVED_REPORT_REPOSITORY, error_log_repository_1.ERROR_LOG_REPOSITORY,
         ],
     })
 ], DatabaseModule);

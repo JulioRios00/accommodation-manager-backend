@@ -154,6 +154,17 @@ import { GenerateUpcomingRentPaymentsUseCase } from './application/use-cases/gen
 import { GenerateUpcomingLandlordPaymentsUseCase } from './application/use-cases/generate-upcoming-landlord-payments.use-case';
 import { PaymentGenerationCron } from './application/services/payment-generation.cron';
 
+/** The pretty-printing transport, but only when it is both wanted and installed. */
+function prettyTransport() {
+  if (process.env.NODE_ENV === 'production') return undefined;
+  try {
+    require.resolve('pino-pretty');
+  } catch {
+    return undefined;
+  }
+  return { target: 'pino-pretty', options: { colorize: true, singleLine: true } };
+}
+
 @Module({
   imports: [
     SentryModule.forRoot(),
@@ -161,9 +172,11 @@ import { PaymentGenerationCron } from './application/services/payment-generation
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-        transport: process.env.NODE_ENV !== 'production'
-          ? { target: 'pino-pretty', options: { colorize: true, singleLine: true } }
-          : undefined,
+        // pino-pretty is a devDependency, so an `npm ci --omit=dev` tree does not have it.
+        // Asking pino for a transport it cannot resolve throws during module construction,
+        // which takes the whole app down before it listens — a formatter for human-read
+        // logs must never be able to do that. Fall back to pino's default JSON output.
+        transport: prettyTransport(),
         redact: [
           'req.headers.authorization',
           'req.headers.cookie',

@@ -48,6 +48,7 @@ const reports_controller_1 = require("./presentation/controllers/reports.control
 const custom_reports_controller_1 = require("./presentation/controllers/custom-reports.controller");
 const companies_controller_1 = require("./presentation/controllers/companies.controller");
 const email_templates_controller_1 = require("./presentation/controllers/email-templates.controller");
+const company_profile_controller_1 = require("./presentation/controllers/company-profile.controller");
 const feature_flags_controller_1 = require("./presentation/controllers/feature-flags.controller");
 const bedrooms_controller_1 = require("./presentation/controllers/bedrooms.controller");
 const users_controller_1 = require("./presentation/controllers/users.controller");
@@ -93,10 +94,13 @@ const save_key_log_use_case_1 = require("./application/use-cases/save-key-log.us
 const delete_key_log_use_case_1 = require("./application/use-cases/delete-key-log.use-case");
 const checkout_use_case_1 = require("./application/use-cases/checkout.use-case");
 const get_rent_payments_use_case_1 = require("./application/use-cases/get-rent-payments.use-case");
+const get_rent_installments_use_case_1 = require("./application/use-cases/get-rent-installments.use-case");
 const save_rent_payment_use_case_1 = require("./application/use-cases/save-rent-payment.use-case");
 const delete_rent_payment_use_case_1 = require("./application/use-cases/delete-rent-payment.use-case");
 const add_rent_installment_use_case_1 = require("./application/use-cases/add-rent-installment.use-case");
 const get_receivables_ledger_use_case_1 = require("./application/use-cases/get-receivables-ledger.use-case");
+const get_company_profile_use_case_1 = require("./application/use-cases/get-company-profile.use-case");
+const save_company_profile_use_case_1 = require("./application/use-cases/save-company-profile.use-case");
 const feature_flag_service_1 = require("./application/services/feature-flag.service");
 const mark_rent_payment_received_use_case_1 = require("./application/use-cases/mark-rent-payment-received.use-case");
 const get_email_template_use_case_1 = require("./application/use-cases/get-email-template.use-case");
@@ -145,6 +149,7 @@ const delete_space_item_use_case_1 = require("./application/use-cases/delete-spa
 const property_spaces_controller_1 = require("./presentation/controllers/property-spaces.controller");
 const get_role_permissions_use_case_1 = require("./application/use-cases/get-role-permissions.use-case");
 const get_audit_logs_use_case_1 = require("./application/use-cases/get-audit-logs.use-case");
+const audit_log_context_service_1 = require("./application/services/audit-log-context.service");
 const audit_log_service_1 = require("./application/services/audit-log.service");
 const import_jobs_service_1 = require("./application/services/import-jobs.service");
 const audit_logs_controller_1 = require("./presentation/controllers/audit-logs.controller");
@@ -155,6 +160,17 @@ const save_role_permissions_use_case_1 = require("./application/use-cases/save-r
 const generate_upcoming_rent_payments_use_case_1 = require("./application/use-cases/generate-upcoming-rent-payments.use-case");
 const generate_upcoming_landlord_payments_use_case_1 = require("./application/use-cases/generate-upcoming-landlord-payments.use-case");
 const payment_generation_cron_1 = require("./application/services/payment-generation.cron");
+function prettyTransport() {
+    if (process.env.NODE_ENV === 'production')
+        return undefined;
+    try {
+        require.resolve('pino-pretty');
+    }
+    catch {
+        return undefined;
+    }
+    return { target: 'pino-pretty', options: { colorize: true, singleLine: true } };
+}
 let AppModule = class AppModule {
     configure(consumer) {
         consumer.apply(metrics_middleware_1.MetricsMiddleware).forRoutes('*');
@@ -169,9 +185,7 @@ exports.AppModule = AppModule = __decorate([
             nestjs_pino_1.LoggerModule.forRoot({
                 pinoHttp: {
                     level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-                    transport: process.env.NODE_ENV !== 'production'
-                        ? { target: 'pino-pretty', options: { colorize: true, singleLine: true } }
-                        : undefined,
+                    transport: prettyTransport(),
                     redact: [
                         'req.headers.authorization',
                         'req.headers.cookie',
@@ -191,7 +205,7 @@ exports.AppModule = AppModule = __decorate([
             residents_controller_1.ResidentsController, bookings_controller_1.BookingsController, health_controller_1.HealthController,
             landlords_controller_1.LandlordsController, service_providers_controller_1.ServiceProvidersController, maintenance_tickets_controller_1.MaintenanceTicketsController, portal_controller_1.PortalController,
             key_logs_controller_1.KeyLogsController, checkout_controller_1.CheckoutController, rent_payments_controller_1.RentPaymentsController, landlord_payments_controller_1.LandlordPaymentsController,
-            deposit_transactions_controller_1.DepositTransactionsController, reports_controller_1.ReportsController, custom_reports_controller_1.CustomReportsController, email_templates_controller_1.EmailTemplatesController, feature_flags_controller_1.FeatureFlagsController, companies_controller_1.CompaniesController, bedrooms_controller_1.BedroomsController,
+            deposit_transactions_controller_1.DepositTransactionsController, reports_controller_1.ReportsController, custom_reports_controller_1.CustomReportsController, email_templates_controller_1.EmailTemplatesController, feature_flags_controller_1.FeatureFlagsController, company_profile_controller_1.CompanyProfileController, companies_controller_1.CompaniesController, bedrooms_controller_1.BedroomsController,
             property_spaces_controller_1.PropertySpacesController, users_controller_1.UsersController, role_permissions_controller_1.RolePermissionsController, audit_logs_controller_1.AuditLogsController, error_logs_controller_1.ErrorLogsController,
         ],
         providers: [
@@ -213,8 +227,10 @@ exports.AppModule = AppModule = __decorate([
             get_maintenance_tickets_use_case_1.GetMaintenanceTicketsUseCase, save_maintenance_ticket_use_case_1.SaveMaintenanceTicketUseCase, delete_maintenance_ticket_use_case_1.DeleteMaintenanceTicketUseCase, add_ticket_activity_use_case_1.AddTicketActivityUseCase, claim_ticket_use_case_1.ClaimTicketUseCase, close_ticket_use_case_1.CloseTicketUseCase, submit_resident_ticket_use_case_1.SubmitResidentTicketUseCase,
             get_key_logs_use_case_1.GetKeyLogsUseCase, save_key_log_use_case_1.SaveKeyLogUseCase, delete_key_log_use_case_1.DeleteKeyLogUseCase,
             checkout_use_case_1.CheckoutUseCase,
-            get_rent_payments_use_case_1.GetRentPaymentsUseCase, save_rent_payment_use_case_1.SaveRentPaymentUseCase, delete_rent_payment_use_case_1.DeleteRentPaymentUseCase, add_rent_installment_use_case_1.AddRentInstallmentUseCase,
+            get_rent_payments_use_case_1.GetRentPaymentsUseCase, save_rent_payment_use_case_1.SaveRentPaymentUseCase, delete_rent_payment_use_case_1.DeleteRentPaymentUseCase, add_rent_installment_use_case_1.AddRentInstallmentUseCase, get_rent_installments_use_case_1.GetRentInstallmentsUseCase,
             feature_flag_service_1.FeatureFlagService,
+            get_company_profile_use_case_1.GetCompanyProfileUseCase,
+            save_company_profile_use_case_1.SaveCompanyProfileUseCase,
             get_receivables_ledger_use_case_1.GetReceivablesLedgerUseCase, mark_rent_payment_received_use_case_1.MarkRentPaymentReceivedUseCase,
             get_email_template_use_case_1.GetEmailTemplateUseCase, save_email_template_use_case_1.SaveEmailTemplateUseCase, escalate_overdue_rent_payments_use_case_1.EscalateOverdueRentPaymentsUseCase,
             email_service_1.EmailService, rent_payment_escalation_cron_1.RentPaymentEscalationCron,
@@ -233,7 +249,7 @@ exports.AppModule = AppModule = __decorate([
             save_space_item_use_case_1.SaveSpaceItemUseCase, delete_space_item_use_case_1.DeleteSpaceItemUseCase,
             get_role_permissions_use_case_1.GetRolePermissionsUseCase, save_role_permissions_use_case_1.SaveRolePermissionsUseCase,
             generate_upcoming_rent_payments_use_case_1.GenerateUpcomingRentPaymentsUseCase, generate_upcoming_landlord_payments_use_case_1.GenerateUpcomingLandlordPaymentsUseCase, payment_generation_cron_1.PaymentGenerationCron,
-            get_audit_logs_use_case_1.GetAuditLogsUseCase, audit_log_service_1.AuditLogService,
+            get_audit_logs_use_case_1.GetAuditLogsUseCase, audit_log_service_1.AuditLogService, audit_log_context_service_1.AuditLogContextService,
             transition_expired_bookings_use_case_1.TransitionExpiredBookingsUseCase, sync_property_lease_status_use_case_1.SyncPropertyLeaseStatusUseCase, booking_status_cron_1.BookingStatusCron,
         ],
     })

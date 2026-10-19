@@ -39,6 +39,7 @@ export declare class ImportController {
     }>;
     importDeposits(file: Express.Multer.File): Promise<{
         imported: number;
+        updated: number;
         skipped: number;
         skipReasons: ImportSkipReason[];
         message: string;
