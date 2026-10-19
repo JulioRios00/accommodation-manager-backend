@@ -1,0 +1,141 @@
+name: Deploy to EC2
+
+# Lives at the REPOSITORY ROOT. GitHub only reads workflows from .github/workflows/
+# at the root — the previous copy sat at backend/.github/workflows/deploy.yml, where it
+# was valid YAML and completely inert. No deploy has run since 2026-10-02 as a result.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy.yml'
+  # Lets you run a deploy by hand from the Actions tab — needed to recover without
+  # inventing a commit, and the safest way to try this the first time.
+  workflow_dispatch:
+    inputs:
+      allow_unrelated_history:
+        description: >-
+          Deploy even though the server checkout shares no history with main.
+          Only after the box has been migrated to the current layout by hand.
+        type: boolean
+        default: false
+
+# Never let two deploys interleave on the same box.
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  # Build and test on the runner BEFORE touching the server. The old workflow went
+  # straight to SSH and built in place, so a broken commit took the API down with it.
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npm test
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      # The app directory on the box. Historically /home/ubuntu/app WAS the Nest app
+      # root; since the restructure the app lives under backend/ in this repo, so the
+      # script below works out which layout it is actually looking at.
+      APP_DIR: ${{ vars.EC2_APP_DIR || '/home/ubuntu/app' }}
+      PM2_APP: ${{ vars.EC2_PM2_APP || 'backend' }}
+      ALLOW_UNRELATED: ${{ inputs.allow_unrelated_history && 'yes' || 'no' }}
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: APP_DIR,PM2_APP,ALLOW_UNRELATED
+          script: |
+            set -euo pipefail
+
+            cd "$APP_DIR"
+
+            echo "==> Fetching"
+            git fetch origin main
+
+            # main's history was replaced at some point: the commit this box is sitting
+            # on shares no ancestor with current main, and the repo was restructured so
+            # the Nest app now lives in backend/ instead of at the checkout root. A
+            # reset --hard across that gap relocates every app file out from under the
+            # running PM2 process, whose script path still points at the old location.
+            # Refuse by default; the box needs a one-time migration by hand first.
+            if ! git merge-base origin/main HEAD > /dev/null 2>&1; then
+              if [ "$ALLOW_UNRELATED" != "yes" ]; then
+                echo "ERROR: this checkout shares no history with origin/main." >&2
+                echo "  here:   $(git rev-parse --short HEAD) $(git log -1 --format=%s)" >&2
+                echo "  target: $(git rev-parse --short origin/main) $(git log -1 --format=%s origin/main)" >&2
+                echo "Deploying across that gap would move the app into backend/ while" >&2
+                echo "PM2 still runs dist/main.js from here. Nothing has been changed." >&2
+                echo "Migrate the box by hand, then re-run with allow_unrelated_history." >&2
+                exit 1
+              fi
+              echo "WARNING: unrelated history, continuing because it was explicitly allowed."
+            fi
+
+            echo "==> Pulling latest code"
+            # -fd removes untracked files but leaves ignored ones, so .env survives.
+            # Do not add -x here: it would delete the server's .env.
+            git clean -fd
+            git reset --hard origin/main
+
+            # Work out where the Nest app is after the pull. The repo was restructured
+            # so that the app sits in backend/; older checkouts have it at the root.
+            if [ -f backend/package.json ]; then
+              BUILD_DIR="$APP_DIR/backend"
+            elif [ -f package.json ] && [ -f nest-cli.json ]; then
+              BUILD_DIR="$APP_DIR"
+            else
+              echo "ERROR: no Nest app found at $APP_DIR or $APP_DIR/backend." >&2
+              echo "Nothing has been built or restarted; the running app is untouched." >&2
+              exit 1
+            fi
+            echo "==> Building in $BUILD_DIR"
+            cd "$BUILD_DIR"
+
+            echo "==> Installing dependencies"
+            # @nestjs/cli and typescript are runtime dependencies in this project, so
+            # --omit=dev still leaves enough to build.
+            npm ci --omit=dev --no-audit --no-fund --maxsockets=3
+
+            echo "==> Building"
+            npm run build
+
+            # Reload only a process that already exists. The old workflow fell back to
+            # `pm2 start <ecosystem>` when the name didn't match, which would have
+            # launched a SECOND copy of the API alongside the running one rather than
+            # replacing it. The repo disagrees with itself about the name
+            # (ecosystem.config.js says "backend", ec2/ecosystem.config.js and
+            # ec2/deploy.sh say "accommodation-manager"), so refuse to guess.
+            if pm2 describe "$PM2_APP" > /dev/null 2>&1; then
+              echo "==> Reloading PM2 app: $PM2_APP"
+              pm2 reload "$PM2_APP" --update-env
+            else
+              echo "ERROR: no PM2 process named '$PM2_APP'. Running processes:" >&2
+              pm2 jlist | grep -o '"name":"[^"]*"' || pm2 status >&2
+              echo "The new build is in place but nothing was restarted, so the old" >&2
+              echo "version is still serving. Set the EC2_PM2_APP repository variable" >&2
+              echo "to the correct name and re-run this workflow." >&2
+              exit 1
+            fi
+
+            pm2 save || true
+            echo "==> Done"
+            pm2 status
