@@ -129,6 +129,61 @@ export function parseBedNumber(value: any): { bedNumber: number | null; bedroomL
   return { bedNumber: null, bedroomLetter: null, bedNumberRaw: raw };
 }
 
+/** Pay Day, Receive Day and Beneficiary Name, which live on the Properties Mach sheet at
+ *  columns K, L and M — one row per property, keyed by the same Code as Control. */
+export interface PropertyPaymentDetails {
+  landlordPaymentDueDay: number | null;
+  residentPaymentDueDay: number | null;
+  landlordPayeeName: string | null;
+}
+
+const NO_PAYMENT_DETAILS: PropertyPaymentDetails = {
+  landlordPaymentDueDay: null,
+  residentPaymentDueDay: null,
+  landlordPayeeName: null,
+};
+
+/**
+ * These three fields were read from Control K-M between 2026-09-26 and this change, on the
+ * assumption that the sheet carried them there. It does not, and the workbooks in use never
+ * have: Control K-M is the start of BED Details, so reading them there shifted every column
+ * from K onwards by three and made the whole import fail. They are on Properties Mach, at
+ * the same three column letters — which is the likeliest source of the original mix-up.
+ *
+ * A property absent from Properties Mach, or with those cells blank, yields nulls rather
+ * than an entry, so the import leaves those fields alone instead of zeroing them.
+ */
+function readPaymentDetails(wb: XLSX.WorkBook, sheetName: string): Map<string, PropertyPaymentDetails> {
+  const details = new Map<string, PropertyPaymentDetails>();
+  const ws = wb.Sheets[sheetName];
+  if (!ws) return details;
+
+  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  // Single header row on this sheet, so data starts at index 1.
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r) continue;
+    const rawCode = toStr(r[0]);
+    if (!rawCode) continue;
+    const { code } = splitCodeAndEirCode(rawCode);
+    const payeeName = toStr(r[12]);
+    details.set(code, {
+      landlordPaymentDueDay: r[10] !== null ? toNum(r[10]) : null,
+      residentPaymentDueDay: r[11] !== null ? toNum(r[11]) : null,
+      // The template ships this placeholder in unfilled rows; it must not become a landlord.
+      landlordPayeeName: payeeName && payeeName.toLowerCase() !== 'beneficiary name' ? payeeName : null,
+    });
+  }
+  return details;
+}
+
+export function parsePropertyPaymentDetails(
+  buffer: Buffer,
+  sheetName: string = 'Properties Mach',
+): Map<string, PropertyPaymentDetails> {
+  return readPaymentDetails(XLSX.read(buffer, { type: 'buffer', cellDates: true }), sheetName);
+}
+
 export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', required: boolean = true): ParsedRow[] {
   const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
   const ws = wb.Sheets[sheetName];
@@ -138,6 +193,8 @@ export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', require
   }
 
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  // Same workbook, so this costs a sheet walk rather than a second parse of the file.
+  const paymentDetails = readPaymentDetails(wb, 'Properties Mach');
 
   const result: ParsedRow[] = [];
 
@@ -180,9 +237,9 @@ export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', require
         fobCount: toNum(r[7]),
         electricityStatus: toStr(r[8]),
         gasStatus: toStr(r[9]),
-        landlordPaymentDueDay: r[10] !== null ? toNum(r[10]) : null,
-        residentPaymentDueDay: r[11] !== null ? toNum(r[11]) : null,
-        landlordPayeeName: toStr(r[12]),
+        // Pay Day / Receive Day / Beneficiary Name are NOT on this sheet — see
+        // parsePropertyPaymentDetails. Merged in by property code.
+        ...(paymentDetails.get(code) ?? NO_PAYMENT_DETAILS),
       };
     }
     if (!lastProperty) continue; // no property established yet — malformed leading row
@@ -190,44 +247,46 @@ export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', require
     result.push({
       // Property (cols A-J, indices 0-9) — carried forward across merged bed rows
       ...lastProperty,
-      // Landlord Payment Details (cols K-M, indices 10-12)
-      // Bed (cols N-Q, indices 13-16)
-      ...parseBedNumber(r[13]),
-      bedroomType: toStr(r[14]) ?? '',
-      sex: toStr(r[15]) ?? '',
-      bedSize: toStr(r[16]) ?? '',
-      // Payment (cols R-T, indices 17-19)
-      depositAmount: toNum(r[18]),
-      rentAmount: toNum(r[19]),
-      // Current resident (cols U-AC, indices 20-28)
-      residentName: toStr(r[20]),
-      residentEmail: toStr(r[21]),
-      residentTelephone: toStr(r[22]),
-      residentNationality: toStr(r[23]),
-      residentPersonalId: toStr(r[24]),
-      residentIban: toStr(r[25]),
-      residentEmergencyContact: toStr(r[26]),
-      residentSource: toStr(r[27]),
-      residentIsHead: toBool(r[28]),
-      // Booking (cols AD-AH, indices 29-33)
-      checkInDate: toDate(r[29]),
-      contractEndDate: toDate(r[30]),
-      checkOutDate: toDate(r[31]),
-      comments: toStr(r[33]),
-      // Temporary resident (cols AK-AW, indices 36-48)
-      tempDepositAmount: r[36] !== null ? toNum(r[36]) : null,
-      tempRentAmount: r[37] !== null ? toNum(r[37]) : null,
-      tempResidentName: toStr(r[38]),
-      tempResidentEmail: toStr(r[39]),
-      tempResidentTelephone: toStr(r[40]),
-      tempResidentNationality: toStr(r[41]),
-      tempResidentPersonalId: toStr(r[42]),
-      tempResidentIban: toStr(r[43]),
-      tempResidentEmergencyContact: toStr(r[44]),
-      tempResidentSource: toStr(r[45]),
-      tempResidentIsHead: toBool(r[46]),
-      tempCheckInDate: toDate(r[47]),
-      tempContractEndDate: toDate(r[48]),
+      // Bed (cols K-N, indices 10-13)
+      ...parseBedNumber(r[10]),
+      bedroomType: toStr(r[11]) ?? '',
+      sex: toStr(r[12]) ?? '',
+      bedSize: toStr(r[13]) ?? '',
+      // Payment (cols O-Q, indices 14-16). Index 14 is the sheet's per-bed "Due" day,
+      // which this system has never imported — the due day it uses is the per-property
+      // Receive Day from Properties Mach.
+      depositAmount: toNum(r[15]),
+      rentAmount: toNum(r[16]),
+      // Current resident (cols R-Z, indices 17-25)
+      residentName: toStr(r[17]),
+      residentEmail: toStr(r[18]),
+      residentTelephone: toStr(r[19]),
+      residentNationality: toStr(r[20]),
+      residentPersonalId: toStr(r[21]),
+      residentIban: toStr(r[22]),
+      residentEmergencyContact: toStr(r[23]),
+      residentSource: toStr(r[24]),
+      residentIsHead: toBool(r[25]),
+      // Booking (cols AA-AE, indices 26-30). Index 29 is "Days" and 31 is "Status";
+      // neither is imported.
+      checkInDate: toDate(r[26]),
+      contractEndDate: toDate(r[27]),
+      checkOutDate: toDate(r[28]),
+      comments: toStr(r[30]),
+      // Temporary resident (cols AH-AT, indices 33-45)
+      tempDepositAmount: r[33] !== null ? toNum(r[33]) : null,
+      tempRentAmount: r[34] !== null ? toNum(r[34]) : null,
+      tempResidentName: toStr(r[35]),
+      tempResidentEmail: toStr(r[36]),
+      tempResidentTelephone: toStr(r[37]),
+      tempResidentNationality: toStr(r[38]),
+      tempResidentPersonalId: toStr(r[39]),
+      tempResidentIban: toStr(r[40]),
+      tempResidentEmergencyContact: toStr(r[41]),
+      tempResidentSource: toStr(r[42]),
+      tempResidentIsHead: toBool(r[43]),
+      tempCheckInDate: toDate(r[44]),
+      tempContractEndDate: toDate(r[45]),
     });
   }
 
