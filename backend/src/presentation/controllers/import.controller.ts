@@ -9,6 +9,7 @@ import { ImportLandlordPaymentsUseCase } from '../../application/use-cases/impor
 import { ImportResidentPaymentsUseCase } from '../../application/use-cases/import-resident-payments.use-case';
 import { ImportResidentsToClerkUseCase } from '../../application/use-cases/import-residents-to-clerk.use-case';
 import { BackfillDepositResidentsUseCase } from '../../application/use-cases/backfill-deposit-residents.use-case';
+import { ImportSheetTally } from '../../application/use-cases/import-xlsx.use-case';
 import { ImportSkipReason } from '../../application/use-cases/import-deposits.use-case';
 import { Roles } from '../decorators/roles.decorator';
 
@@ -17,6 +18,31 @@ const fileGuard = (file: Express.Multer.File) => {
 };
 
 // Turns [{ reason: 'Property "61RR" not found' }, ...] into "85 property not found, 14 duplicate payment".
+/**
+ * One line per sheet showing where every row went, e.g.
+ *   `Control: 343 rows -> 342 imported (1 blank row (no bed number))`
+ *
+ * The previous summary counted only rows that raised a reason, so a sheet whose rows were
+ * all dropped at an early guard reported "Imported 0" with nothing skipped and read as a
+ * success. Each sheet's buckets add up to its row count, so that cannot happen silently.
+ */
+const summarizeTallies = (tallies: ImportSheetTally[]): string =>
+  tallies
+    .filter(t => t.rows > 0)
+    .map(t => {
+      const dropped = Object.entries(t.dropped)
+        .sort((a, b) => b[1] - a[1])
+        .map(([reason, n]) => `${n} ${reason}`)
+        .join(', ');
+      // Same rule as the use case's log: nothing new on a re-import is not a failure.
+      const warning = t.imported === 0 && !t.dropped['already imported']
+        ? ' — NOTHING IMPORTED, check the sheet columns'
+        : '';
+      const unaccounted = t.unaccounted !== 0 ? `, ${t.unaccounted} unaccounted` : '';
+      return `${t.sheet}: ${t.rows} rows -> ${t.imported} imported${dropped ? ` (${dropped}${unaccounted})` : unaccounted}${warning}`;
+    })
+    .join('; ');
+
 const summarizeSkips = (skipReasons: ImportSkipReason[]): string => {
   if (!skipReasons.length) return '';
   const counts = new Map<string, number>();
@@ -65,7 +91,9 @@ export class ImportController {
       .then((result) => {
         const skipNote = result.skipped ? ` — ${summarizeSkips(result.skipReasons)}` : '';
         this.importJobs.complete(job.id, {
-          message: `Imported ${result.imported} beds, ${result.historicalImported} historical (checked-out) bookings (${result.skipped} skipped${skipNote})`,
+          message:
+            `Imported ${result.imported} beds, ${result.historicalImported} historical (checked-out) bookings ` +
+            `(${result.skipped} skipped${skipNote}). ${summarizeTallies(result.tallies)}`,
           ...result,
         });
       })
