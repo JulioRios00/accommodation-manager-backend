@@ -10,6 +10,40 @@ import { IBedroomRepository, BEDROOM_REPOSITORY } from '../../domain/bedroom/bed
 import { ILandlordRepository, LANDLORD_REPOSITORY } from '../../domain/landlord/landlord.repository';
 import { ImportSkipReason } from './import-deposits.use-case';
 
+/**
+ * Where every parsed row of a sheet ended up.
+ *
+ * The counts exist because a misaligned parser once dropped 2,153 CheckedOut rows at a
+ * `continue` that counted nothing, and the import reported success. A summary that only
+ * names the rows it chose to complain about cannot show that kind of failure, so this
+ * accounts for all of them: `imported` plus every bucket in `dropped` equals `rows`.
+ */
+export interface ImportSheetTally {
+  sheet: string;
+  rows: number;
+  imported: number;
+  /** Reason -> row count. Reasons with a zero count are omitted. */
+  dropped: Record<string, number>;
+  /** Non-zero means the buckets do not add up and this tally cannot be trusted. */
+  unaccounted: number;
+}
+
+export interface ImportXlsxResult {
+  imported: number;
+  historicalImported: number;
+  skipped: number;
+  skipReasons: ImportSkipReason[];
+  tallies: ImportSheetTally[];
+}
+
+/** Counts rows by reason without the caller having to pre-declare the reasons. */
+class DropTally {
+  private readonly counts = new Map<string, number>();
+  add(reason: string) { this.counts.set(reason, (this.counts.get(reason) ?? 0) + 1); }
+  get total() { return [...this.counts.values()].reduce((a, b) => a + b, 0); }
+  toRecord(): Record<string, number> { return Object.fromEntries([...this.counts.entries()]); }
+}
+
 // Column M (Sex) on the Control sheet — 'M'/'F' — doubles as the resident's own gender.
 function mapGender(sex: string | null | undefined): string | null {
   const s = sex?.trim().toUpperCase();
@@ -31,7 +65,7 @@ export class ImportXlsxUseCase {
     @Inject(LANDLORD_REPOSITORY) private readonly landlordRepo: ILandlordRepository,
   ) {}
 
-  async execute(buffer: Buffer): Promise<{ imported: number; historicalImported: number; skipped: number; skipReasons: ImportSkipReason[] }> {
+  async execute(buffer: Buffer): Promise<ImportXlsxResult> {
     const rows = parseXlsx(buffer);
     const propertyStatuses = parsePropertyStatuses(buffer);
     let imported = 0;
@@ -45,6 +79,7 @@ export class ImportXlsxUseCase {
     // Caches bedroom lookups per property+letter for the duration of this import,
     // so repeated rows for the same physical bedroom don't race to create duplicates.
     const bedroomCache = new Map<string, string>();
+    const controlDropped = new DropTally();
 
     for (const row of rows) {
       if (row.bedNumber === null) {
@@ -52,6 +87,9 @@ export class ImportXlsxUseCase {
         // filler rows below a sheet's real data also land here and aren't errors.
         if (row.bedNumberRaw) {
           skip(row.code, `Unrecognized bed number "${row.bedNumberRaw}" (expected digits with optional trailing letter, e.g. "12B")`);
+          controlDropped.add('unrecognized bed number');
+        } else {
+          controlDropped.add('blank row (no bed number)');
         }
         continue;
       }
@@ -132,9 +170,37 @@ export class ImportXlsxUseCase {
       imported++;
     }
 
-    const historicalImported = await this.importCheckedOut(buffer, bedroomCache, propertyStatuses, skip);
+    const checkedOut = await this.importCheckedOut(buffer, bedroomCache, propertyStatuses, skip);
 
-    return { imported, historicalImported, skipped, skipReasons };
+    const tallies = [
+      this.tally('Control', rows.length, imported, controlDropped),
+      this.tally('CheckedOut', checkedOut.rows, checkedOut.imported, checkedOut.dropped),
+    ];
+    for (const t of tallies) this.reportTally(t);
+
+    return { imported, historicalImported: checkedOut.imported, skipped, skipReasons, tallies };
+  }
+
+  private tally(sheet: string, rows: number, imported: number, dropped: DropTally): ImportSheetTally {
+    return { sheet, rows, imported, dropped: dropped.toRecord(), unaccounted: rows - imported - dropped.total };
+  }
+
+  /** The log line that would have made the September regression obvious on day one. */
+  private reportTally(t: ImportSheetTally) {
+    const breakdown = Object.entries(t.dropped).map(([r, n]) => `${n} ${r}`).join(', ') || 'none dropped';
+    this.logger.log(`[import-xlsx] ${t.sheet}: ${t.rows} rows, ${t.imported} imported (${breakdown})`);
+    // "Imported nothing" is only alarming when nothing was recognised either. A re-import
+    // of an unchanged sheet legitimately imports nothing, and must not cry wolf.
+    const recognised = t.dropped['already imported'] ?? 0;
+    if (t.rows > 0 && t.imported === 0 && recognised === 0) {
+      this.logger.error(
+        `[import-xlsx] ${t.sheet}: parsed ${t.rows} rows and imported NONE. ` +
+        `This usually means the sheet's columns no longer line up with the parser.`,
+      );
+    }
+    if (t.unaccounted !== 0) {
+      this.logger.error(`[import-xlsx] ${t.sheet}: ${t.unaccounted} rows unaccounted for — the tally is wrong, not the sheet.`);
+    }
   }
 
   // The CheckedOut sheet shares the exact column layout of the Control sheet, but every
@@ -146,17 +212,29 @@ export class ImportXlsxUseCase {
     bedroomCache: Map<string, string>,
     propertyStatuses: Map<string, boolean>,
     skip: (identifier: string, reason: string) => void,
-  ): Promise<number> {
+  ): Promise<{ rows: number; imported: number; dropped: DropTally }> {
     const rows = parseXlsx(buffer, 'CheckedOut', false);
+    const dropped = new DropTally();
     let imported = 0;
 
     for (const row of rows) {
       const residentName = row.residentName;
-      if (!residentName || residentName.toLowerCase() === 'resident full name') continue;
-      if (!row.checkOutDate) continue;
+      if (!residentName || residentName.toLowerCase() === 'resident full name') {
+        dropped.add('no resident name');
+        continue;
+      }
+      // This guard silently swallowed all 2,153 rows while the columns were misaligned,
+      // because it read the Status column instead of Check-out. It is counted now.
+      if (!row.checkOutDate) {
+        dropped.add('no check-out date');
+        continue;
+      }
       if (row.bedNumber === null) {
         if (row.bedNumberRaw) {
           skip(row.code, `[CheckedOut] Unrecognized bed number "${row.bedNumberRaw}" (expected digits with optional trailing letter, e.g. "12B")`);
+          dropped.add('unrecognized bed number');
+        } else {
+          dropped.add('blank row (no bed number)');
         }
         continue;
       }
@@ -170,7 +248,12 @@ export class ImportXlsxUseCase {
           dateKey(b.checkInDate) === dateKey(row.checkInDate) &&
           dateKey(b.checkOutDate) === dateKey(row.checkOutDate),
       );
-      if (alreadyImported) continue;
+      if (alreadyImported) {
+        // Already in the database from an earlier import, or a duplicate row within this
+        // sheet. Expected on a re-import, but it is a count, not a non-event.
+        dropped.add('already imported');
+        continue;
+      }
 
       const resident = await this.upsertResident({
         fullName: residentName,
@@ -201,7 +284,7 @@ export class ImportXlsxUseCase {
       imported++;
     }
 
-    return imported;
+    return { rows: rows.length, imported, dropped };
   }
 
   private async upsertPropertyAndBed(
