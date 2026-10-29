@@ -1,6 +1,11 @@
 import * as XLSX from 'xlsx';
 
 export interface ParsedRow {
+  /** Where this row came from, so anything rejected later can be pointed at by sheet and
+   *  row number. "Row 58 of Control" is actionable; a property code on its own is not,
+   *  because one property spans many rows. 1-based, matching Excel's own row numbers. */
+  sourceSheet: string;
+  sourceRow: number;
   // Property
   code: string;
   eirCode: string | null;
@@ -245,6 +250,8 @@ export function parseXlsx(buffer: Buffer, sheetName: string = 'Control', require
     if (!lastProperty) continue; // no property established yet — malformed leading row
 
     result.push({
+      sourceSheet: sheetName,
+      sourceRow: i + 1,
       // Property (cols A-J, indices 0-9) — carried forward across merged bed rows
       ...lastProperty,
       // Bed (cols K-N, indices 10-13)
