@@ -9,6 +9,13 @@ import { bedroomLetterFromName } from '../../domain/bed/bed-code.util';
 export interface ImportSkipReason {
   identifier: string;
   reason: string;
+  /** Where the rejected row sits in the uploaded workbook, when the importer knows.
+   *  Optional because the deposits importer does not track it. */
+  sheet?: string;
+  row?: number;
+  /** The cell value that was rejected, and enough of the row to recognise it by eye. */
+  value?: string | null;
+  context?: string | null;
 }
 
 @Injectable()

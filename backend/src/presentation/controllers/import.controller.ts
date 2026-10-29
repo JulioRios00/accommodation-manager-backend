@@ -1,5 +1,6 @@
-import { Controller, Get, Logger, NotFoundException, Param, Post, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Get, Logger, NotFoundException, Param, Post, Res, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { ImportJobsService } from '../../application/services/import-jobs.service';
 import { ImportXlsxUseCase } from '../../application/use-cases/import-xlsx.use-case';
 import { ImportBillsUseCase } from '../../application/use-cases/import-bills.use-case';
@@ -10,6 +11,7 @@ import { ImportResidentPaymentsUseCase } from '../../application/use-cases/impor
 import { ImportResidentsToClerkUseCase } from '../../application/use-cases/import-residents-to-clerk.use-case';
 import { BackfillDepositResidentsUseCase } from '../../application/use-cases/backfill-deposit-residents.use-case';
 import { ImportSheetTally } from '../../application/use-cases/import-xlsx.use-case';
+import { ImportIssueReportService } from '../../application/services/import-issue-report.service';
 import { ImportSkipReason } from '../../application/use-cases/import-deposits.use-case';
 import { Roles } from '../decorators/roles.decorator';
 
@@ -43,6 +45,17 @@ const summarizeTallies = (tallies: ImportSheetTally[]): string =>
     })
     .join('; ');
 
+/** A spreadsheet of more than this is not a report anyone reads, and the body has to be
+ *  bounded somewhere. */
+const MAX_REPORT_ROWS = 20000;
+
+/** Client-supplied cell text: a trimmed, length-capped string or null. */
+const text = (v: unknown): string | null => {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim().slice(0, 500);
+  return s === '' ? null : s;
+};
+
 const summarizeSkips = (skipReasons: ImportSkipReason[]): string => {
   if (!skipReasons.length) return '';
   const counts = new Map<string, number>();
@@ -72,6 +85,7 @@ export class ImportController {
     private readonly importResidentPaymentsUseCase: ImportResidentPaymentsUseCase,
     private readonly importResidentsToClerkUseCase: ImportResidentsToClerkUseCase,
     private readonly backfillDepositResidentsUseCase: BackfillDepositResidentsUseCase,
+    private readonly issueReport: ImportIssueReportService,
   ) {}
 
   // The full Control + CheckedOut sheet can run to thousands of rows, each needing several
@@ -103,6 +117,73 @@ export class ImportController {
       });
 
     return { jobId: job.id };
+  }
+
+  /**
+   * The rows an import could not use, as a spreadsheet.
+   *
+   * Reads the finished job rather than re-parsing the upload, so the file always describes
+   * the run the person is looking at. Jobs are pruned an hour after they finish, which is
+   * the window for this download; after that the answer is to import again.
+   */
+  @Get('status/:jobId/report')
+  @Roles('sysadmin', 'manager')
+  async downloadIssueReport(@Param('jobId') jobId: string, @Res() res: Response) {
+    const job = this.importJobs.get(jobId);
+    if (!job) throw new NotFoundException('Import job not found, or older than an hour');
+    if (job.status === 'running') throw new BadRequestException('That import is still running');
+
+    const result = (job.result ?? {}) as {
+      message?: string;
+      skipReasons?: ImportSkipReason[];
+      tallies?: ImportSheetTally[];
+    };
+    const buffer = await this.issueReport.generate({
+      summary: result.message,
+      skipReasons: result.skipReasons ?? [],
+      tallies: result.tallies,
+      generatedAt: job.finishedAt ?? new Date(),
+    });
+
+    const stamp = (job.finishedAt ?? new Date()).toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="import-issues-${stamp}.xlsx"`);
+    res.send(buffer);
+  }
+
+  /**
+   * The same report for the imports that answer directly instead of running as a job
+   * (deposits, bills, payments). There is no stored job to read, so the caller posts back
+   * the result it was given and gets it formatted.
+   *
+   * Nothing is read or written here — it is a formatter, and the file goes back to the
+   * caller alone — but the input is still from a client, so it is bounded and coerced
+   * rather than trusted.
+   */
+  @Post('report')
+  @Roles('sysadmin', 'manager')
+  async buildIssueReport(
+    @Body() body: { message?: unknown; skipReasons?: unknown },
+    @Res() res: Response,
+  ) {
+    const raw = Array.isArray(body?.skipReasons) ? body.skipReasons : [];
+    if (raw.length > MAX_REPORT_ROWS) {
+      throw new BadRequestException(`Too many rows to report on (limit ${MAX_REPORT_ROWS})`);
+    }
+    const skipReasons: ImportSkipReason[] = raw.map((r: any) => ({
+      identifier: text(r?.identifier) ?? '—',
+      reason: text(r?.reason) ?? 'Not imported',
+      sheet: text(r?.sheet) ?? undefined,
+      row: Number.isFinite(Number(r?.row)) ? Number(r.row) : undefined,
+      value: text(r?.value),
+      context: text(r?.context),
+    }));
+
+    const buffer = await this.issueReport.generate({ summary: text(body?.message) ?? undefined, skipReasons });
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="import-issues-${stamp}.xlsx"`);
+    res.send(buffer);
   }
 
   @Get('status/:jobId')

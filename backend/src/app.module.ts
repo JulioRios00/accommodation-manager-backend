@@ -121,6 +121,7 @@ import { GetPortfolioSnapshotUseCase } from './application/use-cases/get-portfol
 import { ReportRegistryService } from './application/services/report-registry.service';
 import { ReportQueryService } from './application/services/report-query.service';
 import { XlsxReportExporterService } from './application/services/xlsx-report-exporter.service';
+import { ImportIssueReportService } from './application/services/import-issue-report.service';
 import { PdfReportExporterService } from './application/services/pdf-report-exporter.service';
 import { GetReportEntitiesUseCase } from './application/use-cases/get-report-entities.use-case';
 import { GetReportEntityFieldsUseCase } from './application/use-cases/get-report-entity-fields.use-case';
@@ -242,6 +243,7 @@ function prettyTransport() {
     GetMyNotificationsUseCase, MarkNotificationReadUseCase, NotificationService,
     GetDelinquencyReportUseCase, GetPortfolioSnapshotUseCase,
     ReportRegistryService, ReportQueryService, XlsxReportExporterService, PdfReportExporterService,
+    ImportIssueReportService,
     GetReportEntitiesUseCase, GetReportEntityFieldsUseCase, PreviewCustomReportUseCase, ExportCustomReportUseCase,
     GetCompaniesUseCase, SaveCompanyUseCase, DeleteCompanyUseCase,
     GetBedroomsUseCase, SaveBedroomUseCase, DeleteBedroomUseCase,

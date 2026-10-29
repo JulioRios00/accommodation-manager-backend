@@ -52,6 +52,11 @@ function mapGender(sex: string | null | undefined): string | null {
   return null;
 }
 
+/** Enough of a row for someone to find it in the spreadsheet without opening it. */
+function describeRow(row: ParsedRow): string {
+  return [row.code, row.bedNumberRaw ?? row.bedroomType, row.residentName].filter(Boolean).join(' · ');
+}
+
 @Injectable()
 export class ImportXlsxUseCase {
   private readonly logger = new Logger(ImportXlsxUseCase.name);
@@ -71,10 +76,17 @@ export class ImportXlsxUseCase {
     let imported = 0;
     let skipped = 0;
     const skipReasons: ImportSkipReason[] = [];
-    const skip = (identifier: string, reason: string) => {
+    const skip = (row: ParsedRow, reason: string, value?: string | null) => {
       skipped++;
-      skipReasons.push({ identifier, reason });
-      this.logger.warn(`[import-xlsx] skip ${identifier}: ${reason}`);
+      skipReasons.push({
+        identifier: row.code,
+        reason,
+        sheet: row.sourceSheet,
+        row: row.sourceRow,
+        value: value ?? null,
+        context: describeRow(row),
+      });
+      this.logger.warn(`[import-xlsx] skip ${row.sourceSheet} row ${row.sourceRow} (${row.code}): ${reason}`);
     };
     // Caches bedroom lookups per property+letter for the duration of this import,
     // so repeated rows for the same physical bedroom don't race to create duplicates.
@@ -86,7 +98,7 @@ export class ImportXlsxUseCase {
         // Only flag rows that actually had bed-number content — trailing blank
         // filler rows below a sheet's real data also land here and aren't errors.
         if (row.bedNumberRaw) {
-          skip(row.code, `Unrecognized bed number "${row.bedNumberRaw}" (expected digits with optional trailing letter, e.g. "12B")`);
+          skip(row, 'Unrecognized bed number (expected digits with an optional trailing letter, e.g. "12B")', row.bedNumberRaw);
           controlDropped.add('unrecognized bed number');
         } else {
           controlDropped.add('blank row (no bed number)');
@@ -211,7 +223,7 @@ export class ImportXlsxUseCase {
     buffer: Buffer,
     bedroomCache: Map<string, string>,
     propertyStatuses: Map<string, boolean>,
-    skip: (identifier: string, reason: string) => void,
+    skip: (row: ParsedRow, reason: string, value?: string | null) => void,
   ): Promise<{ rows: number; imported: number; dropped: DropTally }> {
     const rows = parseXlsx(buffer, 'CheckedOut', false);
     const dropped = new DropTally();
@@ -231,7 +243,7 @@ export class ImportXlsxUseCase {
       }
       if (row.bedNumber === null) {
         if (row.bedNumberRaw) {
-          skip(row.code, `[CheckedOut] Unrecognized bed number "${row.bedNumberRaw}" (expected digits with optional trailing letter, e.g. "12B")`);
+          skip(row, 'Unrecognized bed number (expected digits with an optional trailing letter, e.g. "12B")', row.bedNumberRaw);
           dropped.add('unrecognized bed number');
         } else {
           dropped.add('blank row (no bed number)');
