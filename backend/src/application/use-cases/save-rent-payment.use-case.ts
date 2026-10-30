@@ -12,7 +12,7 @@ export interface SaveRentPaymentDto {
   paymentDueDay?: number | null;
   rentAmount: number;
   amountPaid?: number;
-  lateStatus?: string;
+  lateStatus?: string | null;
   paymentStatus?: string;
   datePaid?: string | null;
   notes?: string | null;
@@ -35,7 +35,8 @@ export class SaveRentPaymentUseCase {
     const payment = await this.repo.save({
       ...dto,
       amountPaid,
-      lateStatus: dto.lateStatus ?? 'on_time',
+      // No longer defaulted: 'on_time' is a statement about a payment, not a placeholder.
+      lateStatus: dto.lateStatus ?? null,
       paymentStatus: dto.paymentStatus ?? derivePaymentStatus(amountPaid, dto.rentAmount),
       datePaid: dto.datePaid ? new Date(dto.datePaid) : null,
     } as any);

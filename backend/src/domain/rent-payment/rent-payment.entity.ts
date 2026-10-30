@@ -24,7 +24,9 @@ export class RentPayment {
   paymentDueDay: number | null;
   rentAmount: number;
   amountPaid: number;
-  lateStatus: string;
+  /** Null when it is genuinely unknown, e.g. imported from a month predating the
+   *  spreadsheet's Overdue Payment Status column. */
+  lateStatus: string | null;
   paymentStatus: string;
   datePaid: Date | null;
   notes: string | null;

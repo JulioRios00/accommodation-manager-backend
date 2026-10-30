@@ -10,7 +10,9 @@ export class RentPaymentOrmEntity {
   @Column({ type: 'int', nullable: true }) paymentDueDay: number;
   @Column({ type: 'decimal', precision: 10, scale: 2 }) rentAmount: number;
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 }) amountPaid: number;
-  @Column({ length: 30, default: 'on_time' }) lateStatus: string;
+  // Nullable, and no default: a row that never said anything about lateness must not
+  // acquire 'on_time' on its way into the database.
+  @Column({ length: 30, nullable: true }) lateStatus: string | null;
   @Column({ length: 20, default: 'unpaid' }) paymentStatus: string;
   @Column({ type: 'date', nullable: true }) datePaid: Date;
   @Column({ type: 'text', nullable: true }) notes: string;

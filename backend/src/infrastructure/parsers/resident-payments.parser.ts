@@ -9,7 +9,8 @@ export interface ParsedResidentPaymentRow {
   amountPaid: number;
   datePaid: Date | null;
   notes: string | null;
-  lateStatus: string;
+  /** Null when the sheet has nothing in column I — see mapLateStatus. */
+  lateStatus: string | null;
 }
 
 const MONTH_MAP: Record<string, string> = {
@@ -44,8 +45,17 @@ function toDate(v: any): Date | null {
   return null;
 }
 
-function mapLateStatus(raw: string | null): string {
-  if (!raw) return 'on_time';
+/**
+ * Column I (Overdue Payment Status) only exists in the tracking sheet from Jan 2026. An
+ * empty cell used to import as 'on_time', so every month before that came in asserting the
+ * rent was paid on time — a claim the spreadsheet never made. Absence is now recorded as
+ * unknown, and the UI shows it as a dash.
+ *
+ * Text we don't recognise still maps to 'on_time': the cell says something, and this parser
+ * is not the place to start rejecting vocabulary the sheet has always used.
+ */
+function mapLateStatus(raw: string | null): string | null {
+  if (!raw) return null;
   const lower = raw.toLowerCase();
   if (lower.includes('overdue')) return 'overdue';
   if (lower.includes('final')) return 'final_demand_d4';
