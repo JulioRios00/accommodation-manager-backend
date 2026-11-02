@@ -122,6 +122,8 @@ import { ReportRegistryService } from './application/services/report-registry.se
 import { ReportQueryService } from './application/services/report-query.service';
 import { XlsxReportExporterService } from './application/services/xlsx-report-exporter.service';
 import { ImportIssueReportService } from './application/services/import-issue-report.service';
+import { OverdueEmailReportService } from './application/services/overdue-email-report.service';
+import { PreviewOverdueEmailsUseCase } from './application/use-cases/preview-overdue-emails.use-case';
 import { PdfReportExporterService } from './application/services/pdf-report-exporter.service';
 import { GetReportEntitiesUseCase } from './application/use-cases/get-report-entities.use-case';
 import { GetReportEntityFieldsUseCase } from './application/use-cases/get-report-entity-fields.use-case';
@@ -243,7 +245,7 @@ function prettyTransport() {
     GetMyNotificationsUseCase, MarkNotificationReadUseCase, NotificationService,
     GetDelinquencyReportUseCase, GetPortfolioSnapshotUseCase,
     ReportRegistryService, ReportQueryService, XlsxReportExporterService, PdfReportExporterService,
-    ImportIssueReportService,
+    ImportIssueReportService, OverdueEmailReportService, PreviewOverdueEmailsUseCase,
     GetReportEntitiesUseCase, GetReportEntityFieldsUseCase, PreviewCustomReportUseCase, ExportCustomReportUseCase,
     GetCompaniesUseCase, SaveCompanyUseCase, DeleteCompanyUseCase,
     GetBedroomsUseCase, SaveBedroomUseCase, DeleteBedroomUseCase,
