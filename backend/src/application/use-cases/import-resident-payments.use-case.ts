@@ -5,6 +5,7 @@ import { IPropertyRepository, PROPERTY_REPOSITORY } from '../../domain/property/
 import { IResidentRepository, RESIDENT_REPOSITORY } from '../../domain/resident/resident.repository';
 import { IBookingRepository, BOOKING_REPOSITORY } from '../../domain/booking/booking.repository';
 import { ImportSkipReason } from './import-deposits.use-case';
+import { derivePaymentStatus } from '../../domain/rent-payment/rent-payment.entity';
 
 @Injectable()
 export class ImportResidentPaymentsUseCase {
@@ -17,7 +18,18 @@ export class ImportResidentPaymentsUseCase {
     @Inject(BOOKING_REPOSITORY) private readonly bookingRepo: IBookingRepository,
   ) {}
 
-  async execute(buffer: Buffer): Promise<{ imported: number; skipped: number; skipReasons: ImportSkipReason[] }> {
+  /**
+   * Re-importing a month overwrites the payment already held for it: the tracking sheet is
+   * the record of what was paid, so where the two disagree the sheet is right. That means a
+   * correction made in the app since the last import is replaced, which is the agreed
+   * trade-off — the alternative was never being able to correct an imported row from the
+   * sheet at all.
+   *
+   * Only the columns the sheet actually carries are written. Fields the sheet knows nothing
+   * about are left alone by the repository's merge — in particular the d1/d4 escalation
+   * stamps, which are what stop a reminder going out twice.
+   */
+  async execute(buffer: Buffer): Promise<{ imported: number; updated: number; skipped: number; skipReasons: ImportSkipReason[] }> {
     const rows = parseResidentPayments(buffer);
     const properties = await this.propertyRepo.findAll();
     const byCode = new Map(properties.map(p => [p.code.toLowerCase(), p]));
@@ -25,11 +37,13 @@ export class ImportResidentPaymentsUseCase {
     const byName = new Map(residents.map(r => [r.fullName.toLowerCase().trim(), r]));
     const allBookings = await this.bookingRepo.findAll('active');
 
-    // Existing payments for duplicate detection
+    // Keyed by property+resident+month so a row already held can be updated rather than
+    // skipped. The id is what makes that possible, so this is a map, not a set.
     const existing = await this.paymentRepo.findAll();
-    const existingKeys = new Set(existing.map(p => `${p.propertyId}|${p.residentId}|${p.month}`));
+    const existingByKey = new Map(existing.map(p => [`${p.propertyId}|${p.residentId}|${p.month}`, p]));
 
     let imported = 0;
+    let updated = 0;
     let skipped = 0;
     const skipReasons: ImportSkipReason[] = [];
     const skip = (identifier: string, reason: string) => {
@@ -50,7 +64,7 @@ export class ImportResidentPaymentsUseCase {
       if (!resident) { skip(identifier, `Resident "${row.residentName}" not found`); continue; }
 
       const key = `${property.id}|${resident.id}|${row.month}`;
-      if (existingKeys.has(key)) { skip(identifier, 'Duplicate payment (already imported)'); continue; }
+      const current = existingByKey.get(key);
 
       // Column C (TenantPaymentDay) is also the resident's own Payment Due Day, shown on
       // their profile — not just a per-month snapshot on the generated payment record.
@@ -62,7 +76,9 @@ export class ImportResidentPaymentsUseCase {
       // Find booking for this resident in this property
       const booking = allBookings.find(b => b.residentId === resident.id);
 
-      await this.paymentRepo.save({
+      const saved = await this.paymentRepo.save({
+        // Present on an update, absent on an insert — the repository merges when it is set.
+        ...(current ? { id: current.id } : {}),
         residentId: resident.id,
         bookingId: booking?.id ?? null,
         propertyId: property.id,
@@ -73,13 +89,18 @@ export class ImportResidentPaymentsUseCase {
         lateStatus: row.lateStatus,
         datePaid: row.datePaid,
         notes: row.notes,
+        // Derived, never imported: the sheet has no such column, and leaving it would let a
+        // changed Amount Paid sit next to a status that contradicts it.
+        paymentStatus: derivePaymentStatus(row.amountPaid, row.rentAmount),
         active: true,
       } as any);
 
-      existingKeys.add(key);
-      imported++;
+      // Keep the map current so a second row for the same resident and month within one
+      // sheet updates the row just written instead of inserting a duplicate beside it.
+      existingByKey.set(key, saved);
+      current ? updated++ : imported++;
     }
 
-    return { imported, skipped, skipReasons };
+    return { imported, updated, skipped, skipReasons };
   }
 }
