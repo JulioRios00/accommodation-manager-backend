@@ -19,3 +19,34 @@ export function daysOverdue(dueDate: Date, now: Date = new Date()): number {
 function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
+
+/** What the escalation job would do with a payment on a given day.
+ *
+ *  This lives here, rather than inline in the job, because the preview report has to reach
+ *  the same verdict the job will. Two copies of these conditions would drift, and a preview
+ *  that disagrees with what actually sends is worse than none. */
+export interface EscalationStage {
+  /** Days past the due date, 0 when not yet due. */
+  overdue: number;
+  dueDate: Date;
+  /** The reminder is due and has not gone out. */
+  needsD1: boolean;
+  /** The final notice is due and has not gone out. */
+  needsD4: boolean;
+}
+
+export function escalationStage(
+  payment: { month: string; paymentDueDay: number | null; d1ReminderSentAt: Date | null; d4NoticeSentAt: Date | null },
+  now: Date = new Date(),
+): EscalationStage {
+  const dueDate = deriveDueDate(payment.month, payment.paymentDueDay);
+  const overdue = daysOverdue(dueDate, now);
+  return {
+    dueDate,
+    overdue,
+    // `>=` plus a null-check, not an exact-day match: a missed run self-heals by firing late
+    // instead of never firing, while the stamp keeps it idempotent against re-runs.
+    needsD1: overdue >= 1 && !payment.d1ReminderSentAt,
+    needsD4: overdue >= 4 && !payment.d4NoticeSentAt,
+  };
+}

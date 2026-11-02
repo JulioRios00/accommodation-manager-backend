@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { IRentPaymentRepository, RENT_PAYMENT_REPOSITORY } from '../../domain/rent-payment/rent-payment.repository';
 import { IResidentRepository, RESIDENT_REPOSITORY } from '../../domain/resident/resident.repository';
-import { deriveDueDate, daysOverdue } from '../../domain/rent-payment/rent-payment.util';
+import { escalationStage } from '../../domain/rent-payment/rent-payment.util';
 import { EmailTemplateKey } from '../../domain/email-template/email-template.entity';
 import { renderTemplate } from '../../domain/email-template/email-template-renderer';
 import { GetEmailTemplateUseCase } from './get-email-template.use-case';
@@ -43,14 +43,8 @@ export class EscalateOverdueRentPaymentsUseCase {
     const result: EscalationResult = { d1Sent: 0, d4Sent: 0, d1Failed: 0, d4Failed: 0, skippedNoEmail: 0 };
 
     for (const payment of pending) {
-      const dueDate = deriveDueDate(payment.month, payment.paymentDueDay);
-      const overdue = daysOverdue(dueDate, now);
-
-      // `>=` + null-check (not `===`) rather than an exact-day match: a missed cron run
-      // self-heals by firing late instead of never firing, while the null-check keeps it
-      // idempotent against re-runs on the same day.
-      const needsD1 = overdue >= 1 && !payment.d1ReminderSentAt;
-      const needsD4 = overdue >= 4 && !payment.d4NoticeSentAt;
+      // Shared with the preview report, so the two cannot disagree about who gets emailed.
+      const { dueDate, overdue, needsD1, needsD4 } = escalationStage(payment, now);
       if (!needsD1 && !needsD4) continue;
 
       const resident = await this.residentRepo.findById(payment.residentId);
