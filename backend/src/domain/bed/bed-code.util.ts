@@ -6,3 +6,9 @@ export function bedroomLetterFromName(bedroomName: string | null | undefined): s
   const m = bedroomName.match(/^Bedroom\s+(.+)$/i);
   return m ? m[1] : bedroomName;
 }
+
+/** The spreadsheet uses a Z bedroom (Z1, Z2, …) for beds that are not lettable stock —
+ *  storage, a room taken out of use, a placeholder. Imported as `inactive`. */
+export function isInactiveBedroomLetter(letter: string | null | undefined): boolean {
+  return (letter ?? '').trim().toUpperCase() === 'Z';
+}

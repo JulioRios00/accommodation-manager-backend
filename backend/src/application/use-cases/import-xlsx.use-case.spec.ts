@@ -33,14 +33,21 @@ function buffer(control: any[][], checkedOut?: any[][]) {
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
 }
 
-function build(opts: { existingCompleted?: boolean } = {}) {
+function build(opts: { existingCompleted?: boolean; bedStatus?: string } = {}) {
   let n = 0;
   const bookings: any[] = [];
+  const beds: any[] = [];
+  const bedSaves: any[] = [];
   const useCase = new ImportXlsxUseCase(
     { upsertByCode: jest.fn(async (p: any) => ({ id: `prop-${p.code}`, ...p })) } as any,
     {
-      upsertByPropertyAndNumber: jest.fn(async (b: any) => ({ id: `bed-${++n}`, ...b })),
-      save: jest.fn(async (b: any) => b),
+      upsertByPropertyAndNumber: jest.fn(async (b: any) => {
+        beds.push(b);
+        // The repository leaves status alone unless the caller passes one, so the bed comes
+        // back with whatever it already had.
+        return { id: `bed-${++n}`, status: opts.bedStatus ?? 'vacant', ...b };
+      }),
+      save: jest.fn(async (b: any) => { bedSaves.push(b); return { id: b.id, status: b.status }; }),
     } as any,
     {
       findByEmail: jest.fn(async () => null),
@@ -59,7 +66,7 @@ function build(opts: { existingCompleted?: boolean } = {}) {
     { findByPropertyAndName: jest.fn(async () => null), save: jest.fn(async (b: any) => ({ id: `bdr-${++n}`, ...b })) } as any,
     { findAll: jest.fn(async () => []), save: jest.fn(async (l: any) => ({ id: 'll-1', ...l })) } as any,
   );
-  return { useCase, bookings };
+  return { useCase, bookings, beds, bedSaves };
 }
 
 const tallyFor = (res: any, sheet: string) => res.tallies.find((t: any) => t.sheet === sheet);
@@ -137,6 +144,39 @@ describe('ImportXlsxUseCase row accounting', () => {
     const res = await useCase.execute(buffer([row({ bed: 'Single' }), row({ bed: 'Double' })]));
     expect(tallyFor(res, 'Control')).toMatchObject({ rows: 2, imported: 0 });
     expect(error).toHaveBeenCalledWith(expect.stringContaining('imported NONE'));
+  });
+
+  it('imports a Z bedroom as an inactive bed', async () => {
+    const { useCase, beds } = build();
+    await useCase.execute(buffer([row({ bed: 'Z1' })]));
+    expect(beds.at(-1)).toMatchObject({ bedNumber: 1, status: 'inactive' });
+  });
+
+  // Inactive is its own state: not allocated, and not vacant either.
+  it('does not let a resident in a Z bed mark that bed allocated', async () => {
+    const { useCase, bedSaves } = build({ bedStatus: 'inactive' });
+    await useCase.execute(buffer([row({ bed: 'Z1', resident: 'Ana Silva' })]));
+    expect(bedSaves.some(b => b.status === 'allocated')).toBe(false);
+  });
+
+  it('still records the booking for a resident sitting in a Z bed', async () => {
+    const { useCase, bookings } = build({ bedStatus: 'inactive' });
+    await useCase.execute(buffer([row({ bed: 'Z1', resident: 'Ana Silva' })]));
+    expect(bookings).toHaveLength(1);
+  });
+
+  it('returns a bed to vacant once it stops being a Z', async () => {
+    const { useCase, bedSaves } = build({ bedStatus: 'inactive' });
+    await useCase.execute(buffer([row({ bed: 'A1', resident: null })]));
+    expect(bedSaves.some(b => b.status === 'vacant')).toBe(true);
+  });
+
+  it('leaves an ordinary bed\u2019s status untouched on re-import', async () => {
+    const { useCase, beds, bedSaves } = build({ bedStatus: 'allocated' });
+    await useCase.execute(buffer([row({ bed: 'A1', resident: null })]));
+    // Nothing in the upsert payload, and no corrective save either.
+    expect(beds.at(-1)).not.toHaveProperty('status');
+    expect(bedSaves).toEqual([]);
   });
 
   it('omits a sheet that is not in the workbook', async () => {
