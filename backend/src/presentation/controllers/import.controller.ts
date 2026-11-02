@@ -242,7 +242,10 @@ export class ImportController {
     fileGuard(file);
     const result = await this.importResidentPaymentsUseCase.execute(file.buffer);
     const skipNote = result.skipped ? ` — ${summarizeSkips(result.skipReasons)}` : '';
-    return { message: `Imported ${result.imported} resident payments (${result.skipped} skipped${skipNote})`, ...result };
+    return {
+      message: `Imported ${result.imported} resident payments, updated ${result.updated} (${result.skipped} skipped${skipNote})`,
+      ...result,
+    };
   }
 
   @Post('residents-clerk')
