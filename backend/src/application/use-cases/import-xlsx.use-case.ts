@@ -9,6 +9,7 @@ import { IBookingRepository, BOOKING_REPOSITORY } from '../../domain/booking/boo
 import { IBedroomRepository, BEDROOM_REPOSITORY } from '../../domain/bedroom/bedroom.repository';
 import { ILandlordRepository, LANDLORD_REPOSITORY } from '../../domain/landlord/landlord.repository';
 import { ImportSkipReason } from './import-deposits.use-case';
+import { isInactiveBedroomLetter } from '../../domain/bed/bed-code.util';
 
 /**
  * Where every parsed row of a sheet ended up.
@@ -146,7 +147,12 @@ export class ImportXlsxUseCase {
           comments: row.comments,
         });
         if (bookingStatus === 'active') {
-          await this.bedRepo.save({ id: bed.id, status: 'allocated' });
+          // A Z bed with a resident in it is a contradiction in the sheet, not something to
+          // resolve by quietly re-letting the bed. The booking is still imported; the bed
+          // keeps the status the sheet gave it.
+          if (bed.status !== 'inactive') {
+            await this.bedRepo.save({ id: bed.id, status: 'allocated' });
+          }
         }
       }
 
@@ -334,6 +340,10 @@ export class ImportXlsxUseCase {
       ? await this.ensureBedroom(property.id, row.bedroomLetter, bedroomCache)
       : null;
 
+    // Status is normally left alone on upsert, so a re-import doesn't wipe out which beds
+    // are currently allocated. A Z bedroom is the exception: it describes the bed itself,
+    // so it is applied on every import.
+    const inactive = isInactiveBedroomLetter(row.bedroomLetter);
     const bed = await this.bedRepo.upsertByPropertyAndNumber({
       propertyId: property.id,
       bedNumber: row.bedNumber,
@@ -343,7 +353,17 @@ export class ImportXlsxUseCase {
       bedSize: row.bedSize,
       depositAmount: row.depositAmount,
       rentAmount: row.rentAmount,
+      ...(inactive ? { status: 'inactive' as const } : {}),
     });
+
+    // The reverse correction: a bed that is no longer a Z has to become lettable again, or
+    // the sheet could mark a bed inactive but never undo it. It returns to `vacant`, not to
+    // whatever it was before — `inactive` is a third state, not a flavour of vacant, so
+    // there is nothing to restore. If someone is actually in it, the booking pass below
+    // sets `allocated`.
+    if (!inactive && bed.status === 'inactive') {
+      return { property, bed: await this.bedRepo.save({ id: bed.id, status: 'vacant' }) };
+    }
 
     return { property, bed };
   }

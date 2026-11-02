@@ -1,4 +1,7 @@
-export type BedStatus = 'vacant' | 'allocated';
+/** `inactive` is a bed that exists in the records but is not part of lettable stock —
+ *  the spreadsheet marks these with a Z bedroom (Z1, Z2…). It stays visible and counted
+ *  separately rather than being soft-deleted, so a drop in bed numbers is explainable. */
+export type BedStatus = 'vacant' | 'allocated' | 'inactive';
 
 export class Bed {
   id: string;
