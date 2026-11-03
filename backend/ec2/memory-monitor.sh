@@ -4,17 +4,21 @@
 # Meant to run from cron every few minutes on the EC2 instance.
 #
 # Setup (once):
-#   chmod +x /home/ubuntu/app/ec2/memory-monitor.sh
+#   chmod +x /home/ubuntu/app/backend/ec2/memory-monitor.sh
 #   crontab -e
-#   */5 * * * * /home/ubuntu/app/ec2/memory-monitor.sh >> /home/ubuntu/app/logs/memory-monitor-cron.log 2>&1
+#   */5 * * * * /home/ubuntu/app/backend/ec2/memory-monitor.sh >> /home/ubuntu/app/logs/memory-monitor-cron.log 2>&1
 #
-# Reads SENTRY_DSN from /home/ubuntu/app/.env (same DSN the NestJS app uses).
+# Reads SENTRY_DSN from /home/ubuntu/app/backend/.env (same DSN the NestJS app uses).
 
 set -euo pipefail
 export LC_ALL=C
 
-APP_DIR="/home/ubuntu/app"
-ENV_FILE="$APP_DIR/.env"
+APP_DIR="${APP_DIR:-/home/ubuntu/app}"
+# The app, and therefore .env, moved into backend/ when the repo was restructured. Prefer
+# that, and fall back to the old root path so this keeps working on a box not yet migrated.
+# Without this the DSN is never found and the 85% alert silently never fires.
+ENV_FILE="$APP_DIR/backend/.env"
+[ -f "$ENV_FILE" ] || ENV_FILE="$APP_DIR/.env"
 LOG_DIR="$APP_DIR/logs"
 LOG_FILE="$LOG_DIR/memory-monitor.log"
 STATE_FILE="$LOG_DIR/.memory-monitor-last-alert"
