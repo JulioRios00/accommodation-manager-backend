@@ -147,6 +147,8 @@ import { GetRolePermissionsUseCase } from './application/use-cases/get-role-perm
 import { GetAuditLogsUseCase } from './application/use-cases/get-audit-logs.use-case';
 import { AuditLogContextService } from './application/services/audit-log-context.service';
 import { AuditLogService } from './application/services/audit-log.service';
+import { AdminController } from './presentation/controllers/admin.controller';
+import { ResetDatabaseUseCase } from './application/use-cases/reset-database.use-case';
 import { ImportJobsService } from './application/services/import-jobs.service';
 import { AuditLogsController } from './presentation/controllers/audit-logs.controller';
 import { TransitionExpiredBookingsUseCase } from './application/use-cases/transition-expired-bookings.use-case';
@@ -203,6 +205,7 @@ function prettyTransport() {
     KeyLogsController, CheckoutController, RentPaymentsController, LandlordPaymentsController,
     DepositTransactionsController, ReportsController, CustomReportsController, EmailTemplatesController, FeatureFlagsController, CompanyProfileController, CompaniesController, BedroomsController,
     PropertySpacesController, UsersController, RolePermissionsController, AuditLogsController, ErrorLogsController,
+    AdminController,
   ],
   providers: [
     // Nest internally reverses global-filter registration order before matching (see
@@ -255,6 +258,7 @@ function prettyTransport() {
     GenerateUpcomingRentPaymentsUseCase, GenerateUpcomingLandlordPaymentsUseCase, PaymentGenerationCron,
     GetAuditLogsUseCase, AuditLogService, AuditLogContextService,
     TransitionExpiredBookingsUseCase, SyncPropertyLeaseStatusUseCase, BookingStatusCron,
+    ResetDatabaseUseCase,
   ],
 })
 export class AppModule implements NestModule {
