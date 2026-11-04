@@ -137,11 +137,13 @@ export class ImportController {
       message?: string;
       skipReasons?: ImportSkipReason[];
       tallies?: ImportSheetTally[];
+      detailTruncated?: number;
     };
     const buffer = await this.issueReport.generate({
       summary: result.message,
       skipReasons: result.skipReasons ?? [],
       tallies: result.tallies,
+      detailTruncated: result.detailTruncated,
       generatedAt: job.finishedAt ?? new Date(),
     });
 
@@ -173,6 +175,8 @@ export class ImportController {
     const skipReasons: ImportSkipReason[] = raw.map((r: any) => ({
       identifier: text(r?.identifier) ?? '—',
       reason: text(r?.reason) ?? 'Not imported',
+      bucket: text(r?.bucket) ?? undefined,
+      severity: r?.severity === 'info' ? 'info' : 'error',
       sheet: text(r?.sheet) ?? undefined,
       row: Number.isFinite(Number(r?.row)) ? Number(r.row) : undefined,
       value: text(r?.value),

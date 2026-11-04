@@ -35,6 +35,8 @@ export interface ImportXlsxResult {
   skipped: number;
   skipReasons: ImportSkipReason[];
   tallies: ImportSheetTally[];
+  /** Rows dropped beyond the detail cap: counted on the summary, absent from the list. */
+  detailTruncated?: number;
 }
 
 /** Counts rows by reason without the caller having to pre-declare the reasons. */
@@ -44,6 +46,30 @@ class DropTally {
   get total() { return [...this.counts.values()].reduce((a, b) => a + b, 0); }
   toRecord(): Record<string, number> { return Object.fromEntries([...this.counts.entries()]); }
 }
+
+/** Options for recording a dropped row. */
+interface DropOptions {
+  /** The full sentence for the detail list, when the summary bucket is too terse to act on. */
+  detail?: string;
+  /** Defaults to 'error'. See ImportSkipReason.severity. */
+  severity?: 'error' | 'info';
+  /** The cell value that caused the drop. */
+  value?: string | null;
+}
+
+/**
+ * Upper bound on the per-row detail list.
+ *
+ * The counts are always complete; this caps only the itemised list, which is carried in
+ * the job result and handed back to the browser on every status poll. A misaligned parser
+ * can drop every row of a 2,100-row sheet, and an unbounded list would make the failure
+ * expensive to report as well as to suffer.
+ */
+const MAX_DETAIL_ROWS = 3000;
+
+/** One bucket for genuinely empty rows, whichever guard catches them first. */
+const BLANK_ROW = 'blank row (nothing in it)';
+const BLANK_ROW_DETAIL = 'Empty row — nothing to import, and nothing to correct';
 
 // Column M (Sex) on the Control sheet — 'M'/'F' — doubles as the resident's own gender.
 function mapGender(sex: string | null | undefined): string | null {
@@ -56,6 +82,26 @@ function mapGender(sex: string | null | undefined): string | null {
 /** Enough of a row for someone to find it in the spreadsheet without opening it. */
 function describeRow(row: ParsedRow): string {
   return [row.code, row.bedNumberRaw ?? row.bedroomType, row.residentName].filter(Boolean).join(' · ');
+}
+
+/**
+ * A row with nothing of its own in it.
+ *
+ * The property columns (A-J) are carried forward from the last filled row, so `code` is
+ * populated even on the trailing filler rows below a sheet's real data — it cannot be
+ * used to tell a blank row from a real one. Only the per-row columns can.
+ */
+function isBlankRow(row: ParsedRow): boolean {
+  return (
+    !row.bedNumberRaw &&
+    !row.residentName &&
+    !row.tempResidentName &&
+    !row.checkInDate &&
+    !row.checkOutDate &&
+    !row.rentAmount &&
+    !row.depositAmount &&
+    !row.comments
+  );
 }
 
 @Injectable()
@@ -77,17 +123,36 @@ export class ImportXlsxUseCase {
     let imported = 0;
     let skipped = 0;
     const skipReasons: ImportSkipReason[] = [];
-    const skip = (row: ParsedRow, reason: string, value?: string | null) => {
-      skipped++;
-      skipReasons.push({
-        identifier: row.code,
-        reason,
-        sheet: row.sourceSheet,
-        row: row.sourceRow,
-        value: value ?? null,
-        context: describeRow(row),
-      });
-      this.logger.warn(`[import-xlsx] skip ${row.sourceSheet} row ${row.sourceRow} (${row.code}): ${reason}`);
+    let detailTruncated = 0;
+    /**
+     * Records one row that did not make it in: counted on the summary under `bucket`, and
+     * listed individually by sheet and Excel row number so the person correcting the file
+     * can go straight to the line. Every drop goes through here — a bucket that only
+     * incremented a counter is exactly how 2,153 rows once vanished without a trace.
+     */
+    const drop = (tally: DropTally, row: ParsedRow, bucket: string, opts: DropOptions = {}) => {
+      const severity = opts.severity ?? 'error';
+      tally.add(bucket);
+      if (severity === 'error') skipped++;
+      if (skipReasons.length < MAX_DETAIL_ROWS) {
+        skipReasons.push({
+          identifier: row.code || '—',
+          reason: opts.detail ?? bucket,
+          bucket,
+          severity,
+          sheet: row.sourceSheet,
+          row: row.sourceRow,
+          value: opts.value ?? null,
+          context: describeRow(row),
+        });
+      } else {
+        detailTruncated++;
+      }
+      if (severity === 'error') {
+        this.logger.warn(
+          `[import-xlsx] skip ${row.sourceSheet} row ${row.sourceRow} (${row.code || 'no code'}): ${opts.detail ?? bucket}`,
+        );
+      }
     };
     // Caches bedroom lookups per property+letter for the duration of this import,
     // so repeated rows for the same physical bedroom don't race to create duplicates.
@@ -99,10 +164,19 @@ export class ImportXlsxUseCase {
         // Only flag rows that actually had bed-number content — trailing blank
         // filler rows below a sheet's real data also land here and aren't errors.
         if (row.bedNumberRaw) {
-          skip(row, 'Unrecognized bed number (expected digits with an optional trailing letter, e.g. "12B")', row.bedNumberRaw);
-          controlDropped.add('unrecognized bed number');
+          drop(controlDropped, row, 'unrecognized bed number', {
+            detail: 'Unrecognized bed number (expected digits with an optional trailing letter, e.g. "12B")',
+            value: row.bedNumberRaw,
+          });
+        } else if (isBlankRow(row)) {
+          drop(controlDropped, row, BLANK_ROW, { detail: BLANK_ROW_DETAIL, severity: 'info' });
         } else {
-          controlDropped.add('blank row (no bed number)');
+          // Not filler: this row carries a resident, dates or an amount and only the bed
+          // number is missing, so it is real data being lost. It was counted as a blank
+          // row until Nov 2026, which is how it stayed invisible.
+          drop(controlDropped, row, 'no bed number', {
+            detail: 'Column K (Bed) is empty, so there is no bed to attach this row to',
+          });
         }
         continue;
       }
@@ -188,15 +262,28 @@ export class ImportXlsxUseCase {
       imported++;
     }
 
-    const checkedOut = await this.importCheckedOut(buffer, bedroomCache, propertyStatuses, skip);
+    const checkedOut = await this.importCheckedOut(buffer, bedroomCache, propertyStatuses, drop);
 
     const tallies = [
       this.tally('Control', rows.length, imported, controlDropped),
       this.tally('CheckedOut', checkedOut.rows, checkedOut.imported, checkedOut.dropped),
     ];
     for (const t of tallies) this.reportTally(t);
+    if (detailTruncated > 0) {
+      this.logger.warn(
+        `[import-xlsx] ${detailTruncated} further dropped rows are counted but not listed individually ` +
+        `(detail list capped at ${MAX_DETAIL_ROWS}).`,
+      );
+    }
 
-    return { imported, historicalImported: checkedOut.imported, skipped, skipReasons, tallies };
+    return {
+      imported,
+      historicalImported: checkedOut.imported,
+      skipped,
+      skipReasons,
+      tallies,
+      ...(detailTruncated > 0 ? { detailTruncated } : {}),
+    };
   }
 
   private tally(sheet: string, rows: number, imported: number, dropped: DropTally): ImportSheetTally {
@@ -229,7 +316,7 @@ export class ImportXlsxUseCase {
     buffer: Buffer,
     bedroomCache: Map<string, string>,
     propertyStatuses: Map<string, boolean>,
-    skip: (row: ParsedRow, reason: string, value?: string | null) => void,
+    drop: (tally: DropTally, row: ParsedRow, bucket: string, opts?: DropOptions) => void,
   ): Promise<{ rows: number; imported: number; dropped: DropTally }> {
     const rows = parseXlsx(buffer, 'CheckedOut', false);
     const dropped = new DropTally();
@@ -238,21 +325,41 @@ export class ImportXlsxUseCase {
     for (const row of rows) {
       const residentName = row.residentName;
       if (!residentName || residentName.toLowerCase() === 'resident full name') {
-        dropped.add('no resident name');
+        // A wholly empty filler row is housekeeping; one that carries a bed, dates or an
+        // amount but no name is a real gap in the sheet and needs a name typing in.
+        const blank = isBlankRow(row);
+        drop(dropped, row, blank ? BLANK_ROW : 'no resident name', {
+          detail: blank
+            ? BLANK_ROW_DETAIL
+            : 'Column R (Resident) is empty, so there is nobody to attach this stay to',
+          severity: blank ? 'info' : 'error',
+        });
         continue;
       }
       // This guard silently swallowed all 2,153 rows while the columns were misaligned,
       // because it read the Status column instead of Check-out. It is counted now.
       if (!row.checkOutDate) {
-        dropped.add('no check-out date');
+        drop(dropped, row, 'no check-out date', {
+          detail:
+            'Column AC (Check-out) is empty. Rows on CheckedOut are past stays, so without ' +
+            'a check-out date there is no history to record — fill the date in, or move the ' +
+            'row back to Control if the resident is still in place.',
+          severity: 'info',
+        });
         continue;
       }
       if (row.bedNumber === null) {
         if (row.bedNumberRaw) {
-          skip(row, 'Unrecognized bed number (expected digits with an optional trailing letter, e.g. "12B")', row.bedNumberRaw);
-          dropped.add('unrecognized bed number');
+          drop(dropped, row, 'unrecognized bed number', {
+            detail: 'Unrecognized bed number (expected digits with an optional trailing letter, e.g. "12B")',
+            value: row.bedNumberRaw,
+          });
+        } else if (isBlankRow(row)) {
+          drop(dropped, row, BLANK_ROW, { detail: BLANK_ROW_DETAIL, severity: 'info' });
         } else {
-          dropped.add('blank row (no bed number)');
+          drop(dropped, row, 'no bed number', {
+            detail: 'Column K (Bed) is empty, so there is no bed to attach this stay to',
+          });
         }
         continue;
       }
@@ -269,7 +376,13 @@ export class ImportXlsxUseCase {
       if (alreadyImported) {
         // Already in the database from an earlier import, or a duplicate row within this
         // sheet. Expected on a re-import, but it is a count, not a non-event.
-        dropped.add('already imported');
+        drop(dropped, row, 'already imported', {
+          detail:
+            'This stay is already recorded (same bed, check-in and check-out), so the row ' +
+            'was left as it is. Expected on a re-import; two rows here with identical dates ' +
+            'means one of them is a duplicate in the sheet.',
+          severity: 'info',
+        });
         continue;
       }
 

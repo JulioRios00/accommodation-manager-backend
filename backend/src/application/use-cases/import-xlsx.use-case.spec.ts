@@ -18,6 +18,13 @@ const HEADERS = [
 
 type RowOpts = { code?: string; bed?: any; resident?: string | null; checkOut?: Date | null };
 
+/** A filler row below the data: the property columns carry forward, nothing else is set. */
+const blankRow = () => {
+  const r: any[] = new Array(32).fill(null);
+  r[0] = 'D07E9XP-61RR'; r[1] = 'SA';
+  return r;
+};
+
 const row = ({ code = 'D07E9XP-61RR', bed = 'A1', resident = 'Ana Silva', checkOut = new Date(Date.UTC(2026, 0, 31)) }: RowOpts = {}) => {
   const r: any[] = new Array(32).fill(null);
   r[0] = code; r[1] = 'SA'; r[10] = bed; r[11] = 'Twin'; r[12] = 'F'; r[13] = 'Single';
@@ -82,13 +89,57 @@ describe('ImportXlsxUseCase row accounting', () => {
 
   it('separates a blank row from an unreadable bed number', async () => {
     const { useCase } = build();
-    const res = await useCase.execute(buffer([row(), row({ bed: 'Single' }), row({ bed: null })]));
+    const res = await useCase.execute(buffer([row(), row({ bed: 'Single' }), blankRow()]));
     const t = tallyFor(res, 'Control');
     expect(t.imported).toBe(1);
-    expect(t.dropped).toEqual({ 'unrecognized bed number': 1, 'blank row (no bed number)': 1 });
+    expect(t.dropped).toEqual({ 'unrecognized bed number': 1, 'blank row (nothing in it)': 1 });
     expect(t.unaccounted).toBe(0);
     // Only the unreadable one is worth a human's attention.
     expect(res.skipped).toBe(1);
+  });
+
+  // A row with a resident and a rent but no bed number is data being lost, not filler.
+  // It was counted as a blank row until Nov 2026 and so never reached anybody.
+  it('treats a row that has content but no bed number as something to fix', async () => {
+    const { useCase } = build();
+    const res = await useCase.execute(buffer([row(), row({ bed: null })]));
+    const t = tallyFor(res, 'Control');
+    expect(t.dropped).toEqual({ 'no bed number': 1 });
+    expect(res.skipped).toBe(1);
+  });
+
+  // The point of the whole report: a count alone cannot be acted on.
+  it('lists every dropped row by sheet and Excel row number', async () => {
+    const { useCase } = build();
+    const res = await useCase.execute(
+      buffer([row(), row({ bed: 'Single' }), blankRow()], [row(), row({ checkOut: null })]),
+    );
+    const droppedTotal = res.tallies.reduce(
+      (sum: number, t: any) => sum + Object.values<number>(t.dropped).reduce((a, b) => a + b, 0),
+      0,
+    );
+    // Every bucketed row has a detail entry, informational ones included.
+    expect(res.skipReasons).toHaveLength(droppedTotal);
+    expect(res.skipReasons).toContainEqual(
+      expect.objectContaining({ sheet: 'Control', row: 4, bucket: 'unrecognized bed number', severity: 'error' }),
+    );
+    expect(res.skipReasons).toContainEqual(
+      expect.objectContaining({ sheet: 'Control', row: 5, bucket: 'blank row (nothing in it)', severity: 'info' }),
+    );
+    expect(res.skipReasons).toContainEqual(
+      expect.objectContaining({ sheet: 'CheckedOut', row: 4, bucket: 'no check-out date', severity: 'info' }),
+    );
+  });
+
+  // Informational rows are listed but must not inflate the headline count, or every
+  // re-import would read as hundreds of problems.
+  it('counts only the rows needing a fix as skipped', async () => {
+    const { useCase } = build({ existingCompleted: true });
+    jest.spyOn((useCase as any).logger, 'error').mockImplementation(() => undefined);
+    const res = await useCase.execute(buffer([row()], [row()]));
+    expect(res.skipped).toBe(0);
+    expect(res.skipReasons).toHaveLength(1);
+    expect(res.skipReasons[0]).toMatchObject({ sheet: 'CheckedOut', row: 3, severity: 'info' });
   });
 
   // The regression this whole change exists for.
@@ -124,7 +175,7 @@ describe('ImportXlsxUseCase row accounting', () => {
     const { useCase } = build();
     const res = await useCase.execute(
       buffer(
-        [row(), row({ bed: 'Double' }), row({ bed: null })],
+        [row(), row({ bed: 'Double' }), blankRow()],
         [row(), row({ checkOut: null }), row({ resident: null }), row({ bed: 'Twin' })],
       ),
     );

@@ -9,6 +9,13 @@ import { bedroomLetterFromName } from '../../domain/bed/bed-code.util';
 export interface ImportSkipReason {
   identifier: string;
   reason: string;
+  /** The short bucket this row was counted under on the summary, so the detail list and
+   *  the per-reason counts can be matched to each other. Defaults to `reason`. */
+  bucket?: string;
+  /** 'error' means someone has to correct the sheet; 'info' means the row was dropped for
+   *  an expected reason (already imported, still in residence, trailing blank). Both are
+   *  listed row by row — only errors count towards the headline "skipped" number. */
+  severity?: 'error' | 'info';
   /** Where the rejected row sits in the uploaded workbook, when the importer knows.
    *  Optional because the deposits importer does not track it. */
   sheet?: string;

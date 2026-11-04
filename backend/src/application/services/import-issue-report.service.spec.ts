@@ -16,7 +16,7 @@ const issue = (over: Partial<ImportSkipReason> = {}): ImportSkipReason => ({
 });
 
 const tally = (over: Partial<ImportSheetTally> = {}): ImportSheetTally => ({
-  sheet: 'Control', rows: 343, imported: 342, dropped: { 'blank row (no bed number)': 1 }, unaccounted: 0, ...over,
+  sheet: 'Control', rows: 343, imported: 342, dropped: { 'blank row (nothing in it)': 1 }, unaccounted: 0, ...over,
 });
 
 async function read(buffer: Buffer) {
@@ -40,13 +40,31 @@ describe('ImportIssueReportService', () => {
   it('gives each rejected row its sheet, row number and the offending value', async () => {
     const { cells } = await read(await service.generate({ skipReasons: [issue()] }));
     const [header, first] = cells('Rows not imported');
-    expect(header).toEqual(['Sheet', 'Row', 'Property', 'Value', 'Row contents', 'Why it was not imported']);
+    expect(header).toEqual([
+      'Sheet', 'Excel row', 'Cell', 'Action', 'Problem', 'Property', 'Value', 'Row contents', 'What to do',
+    ]);
     expect(first[0]).toBe('Control');
     expect(first[1]).toBe(58);
-    expect(first[2]).toBe('61RR');
-    expect(first[3]).toBe('Single');
-    expect(first[4]).toBe('61RR · Single · Ana Silva');
-    expect(String(first[5])).toContain('Unrecognized bed number');
+    // Pasteable into Excel's Name Box to jump straight to the line.
+    expect(first[2]).toBe('A58');
+    expect(first[3]).toBe('Needs fixing');
+    expect(first[5]).toBe('61RR');
+    expect(first[6]).toBe('Single');
+    expect(first[7]).toBe('61RR · Single · Ana Silva');
+    expect(String(first[8])).toContain('Unrecognized bed number');
+  });
+
+  it('marks expected drops as information rather than something to fix', async () => {
+    const { cells } = await read(await service.generate({
+      skipReasons: [
+        issue({ sheet: 'CheckedOut', row: 9, bucket: 'already imported', severity: 'info' }),
+        issue({ sheet: 'CheckedOut', row: 400 }),
+      ],
+    }));
+    const rows = cells('Rows not imported').slice(1);
+    // Errors first: they are the rows someone has to act on.
+    expect(rows.map(r => [r[1], r[3]])).toEqual([[400, 'Needs fixing'], [9, 'For information']]);
+    expect(rows[1][4]).toBe('already imported');
   });
 
   it('orders the rows the way the source workbook reads, not the order problems were hit', async () => {
@@ -68,8 +86,8 @@ describe('ImportIssueReportService', () => {
     }));
     const [, first] = cells('Rows not imported');
     expect(first[0]).toBe('—');
-    expect(first[2]).toBe('Ana Silva');
-    expect(first[5]).toBe('Property not found');
+    expect(first[5]).toBe('Ana Silva');
+    expect(first[8]).toBe('Property not found');
   });
 
   it('says so plainly when nothing was rejected', async () => {
@@ -93,11 +111,37 @@ describe('ImportIssueReportService', () => {
       })],
     });
     const rows = (await read(buffer)).cells('Summary').slice(1);
-    expect(rows[0]).toEqual(['CheckedOut', 2153, 2023, 130, 'no check-out date', 97]);
+    expect(rows[0].slice(0, 6)).toEqual(['CheckedOut', 2153, 2023, 130, 'no check-out date', 97]);
     // Later reasons carry only their own count, so the sheet totals are not double-read.
     expect(rows[1][0]).toBeUndefined();
     expect(rows[1][4]).toBe('already imported');
     expect(rows.map(r => r[5])).toEqual([97, 24, 6, 3]);
+  });
+
+  // The complaint this column answers: a count of 24 says nothing about which 24.
+  it('names the exact rows behind each count', async () => {
+    const buffer = await service.generate({
+      skipReasons: [4, 5, 6, 7, 11, 40].map(row =>
+        issue({ sheet: 'CheckedOut', row, bucket: 'no check-out date', severity: 'info' }),
+      ),
+      tallies: [tally({ sheet: 'CheckedOut', rows: 50, imported: 44, dropped: { 'no check-out date': 6 } })],
+    });
+    const rows = (await read(buffer)).cells('Summary').slice(1);
+    // Runs are collapsed: a contiguous block is easier to check against the sheet, and a
+    // long run is itself a clue that one thing went wrong rather than six.
+    expect(rows[0][7]).toBe('4-7, 11, 40');
+    expect(rows[0][6]).toBe('For information');
+  });
+
+  it('says where to look when a count has more rows than the detail list carries', async () => {
+    const buffer = await service.generate({
+      skipReasons: [],
+      tallies: [tally({ dropped: { 'no bed number': 3 } })],
+      detailTruncated: 3,
+    });
+    const rows = (await read(buffer)).cells('Summary').slice(1);
+    expect(rows[0][7]).toBe('see "Rows not imported"');
+    expect(rows.some(r => String(r[4]).includes('not listed individually'))).toBe(true);
   });
 
   it('flags a tally whose buckets do not add up', async () => {
