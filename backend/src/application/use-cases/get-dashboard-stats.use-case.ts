@@ -22,9 +22,15 @@ export class GetDashboardStatsUseCase {
     const properties = allProperties.filter((p) => p.active);
     const inactiveProperties = allProperties.length - properties.length;
 
+    // A deactivated bed is not lettable stock, so counting it would make occupancy look
+    // worse than it is — the denominator has to be the beds that could actually be let.
+    // It is reported separately instead, the same way the Beds page does it.
+    const lettableBeds = beds.filter((b) => b.status !== 'inactive');
+    const inactiveBeds = beds.length - lettableBeds.length;
+
     const occupiedBedIds = new Set(activeBookings.map((b) => b.bedId));
-    const occupiedBeds = occupiedBedIds.size;
-    const availableBeds = beds.length - occupiedBeds;
+    const occupiedBeds = lettableBeds.filter((b) => occupiedBedIds.has(b.id)).length;
+    const availableBeds = lettableBeds.length - occupiedBeds;
 
     const today = Date.now();
 
@@ -36,7 +42,7 @@ export class GetDashboardStatsUseCase {
       return daysUntilEnd >= 0 && daysUntilEnd <= 38;
     }).length;
 
-    const totalBeds = beds.length;
+    const totalBeds = lettableBeds.length;
     const occupancyRate = totalBeds > 0
       ? Math.round((occupiedBeds / totalBeds) * 1000) / 10
       : 0;
@@ -50,6 +56,7 @@ export class GetDashboardStatsUseCase {
       totalProperties: properties.length,
       inactiveProperties,
       totalBeds,
+      inactiveBeds,
       occupiedBeds,
       availableBeds,
       onRadarBeds,
