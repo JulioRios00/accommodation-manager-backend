@@ -149,6 +149,7 @@ import { AuditLogContextService } from './application/services/audit-log-context
 import { AuditLogService } from './application/services/audit-log.service';
 import { AdminController } from './presentation/controllers/admin.controller';
 import { ResetDatabaseUseCase } from './application/use-cases/reset-database.use-case';
+import { SetBedStatusUseCase } from './application/use-cases/set-bed-status.use-case';
 import { ImportJobsService } from './application/services/import-jobs.service';
 import { AuditLogsController } from './presentation/controllers/audit-logs.controller';
 import { TransitionExpiredBookingsUseCase } from './application/use-cases/transition-expired-bookings.use-case';
@@ -258,7 +259,7 @@ function prettyTransport() {
     GenerateUpcomingRentPaymentsUseCase, GenerateUpcomingLandlordPaymentsUseCase, PaymentGenerationCron,
     GetAuditLogsUseCase, AuditLogService, AuditLogContextService,
     TransitionExpiredBookingsUseCase, SyncPropertyLeaseStatusUseCase, BookingStatusCron,
-    ResetDatabaseUseCase,
+    ResetDatabaseUseCase, SetBedStatusUseCase,
   ],
 })
 export class AppModule implements NestModule {

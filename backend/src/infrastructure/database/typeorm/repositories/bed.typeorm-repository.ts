@@ -78,6 +78,7 @@ export class BedTypeOrmRepository implements IBedRepository {
     b.name = entity.name ?? null;
     b.position = entity.position ?? null;
     b.status = (entity.status ?? 'vacant') as any;
+    b.statusSetManually = entity.statusSetManually ?? false;
     b.bedroomType = entity.bedroomType;
     b.sex = entity.sex;
     b.bedSize = entity.bedSize;

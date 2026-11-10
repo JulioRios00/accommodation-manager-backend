@@ -40,7 +40,7 @@ function buffer(control: any[][], checkedOut?: any[][]) {
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
 }
 
-function build(opts: { existingCompleted?: boolean; bedStatus?: string } = {}) {
+function build(opts: { existingCompleted?: boolean; bedStatus?: string; statusSetManually?: boolean } = {}) {
   let n = 0;
   const bookings: any[] = [];
   const beds: any[] = [];
@@ -52,8 +52,13 @@ function build(opts: { existingCompleted?: boolean; bedStatus?: string } = {}) {
         beds.push(b);
         // The repository leaves status alone unless the caller passes one, so the bed comes
         // back with whatever it already had.
-        return { id: `bed-${++n}`, status: opts.bedStatus ?? 'vacant', ...b };
+        return { id: `bed-${++n}`, status: opts.bedStatus ?? 'vacant', statusSetManually: !!opts.statusSetManually, ...b };
       }),
+      findByPropertyAndNumber: jest.fn(async () =>
+        opts.bedStatus || opts.statusSetManually
+          ? { id: 'bed-existing', status: opts.bedStatus ?? 'vacant', statusSetManually: !!opts.statusSetManually }
+          : null,
+      ),
       save: jest.fn(async (b: any) => { bedSaves.push(b); return { id: b.id, status: b.status }; }),
     } as any,
     {
@@ -220,6 +225,21 @@ describe('ImportXlsxUseCase row accounting', () => {
     const { useCase, bedSaves } = build({ bedStatus: 'inactive' });
     await useCase.execute(buffer([row({ bed: 'A1', resident: null })]));
     expect(bedSaves.some(b => b.status === 'vacant')).toBe(true);
+  });
+
+  // After the first load the system is the record, not the spreadsheet: a bed taken out
+  // of service by hand must not be re-let by a sheet that still lists it as A1.
+  it('does not let the sheet overwrite a status someone set by hand', async () => {
+    const { useCase, beds, bedSaves } = build({ bedStatus: 'inactive', statusSetManually: true });
+    await useCase.execute(buffer([row({ bed: 'A1', resident: null })]));
+    expect(beds.at(-1).status).toBeUndefined();
+    expect(bedSaves.some(b => b.status === 'vacant')).toBe(false);
+  });
+
+  it('still applies a Z bedroom to a bed nobody has touched', async () => {
+    const { useCase, beds } = build();
+    await useCase.execute(buffer([row({ bed: 'Z1' })]));
+    expect(beds.at(-1)).toMatchObject({ status: 'inactive' });
   });
 
   it('leaves an ordinary bed\u2019s status untouched on re-import', async () => {

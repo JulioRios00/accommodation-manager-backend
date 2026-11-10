@@ -31,6 +31,10 @@ export class BedOrmEntity {
   @Column({ length: 20, default: 'vacant' })
   status: string;
 
+  /** See Bed.statusSetManually — the importer checks this before touching `status`. */
+  @Column({ default: false })
+  statusSetManually: boolean;
+
   @Column()
   bedNumber: number;
 

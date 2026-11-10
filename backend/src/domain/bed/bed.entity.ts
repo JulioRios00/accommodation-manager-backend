@@ -13,6 +13,11 @@ export class Bed {
   name: string | null;
   position: number | null;
   status: BedStatus;
+  /** True once someone has set the status by hand from the Beds page. The importer then
+   *  leaves the status alone: after the first load the system is the record, not the
+   *  spreadsheet, so a sheet that still says A1 must not re-let a bed taken out of
+   *  service here. Reset by editing the bed or deleting it. */
+  statusSetManually: boolean;
   bedroomType: string;
   sex: string;
   bedSize: string;

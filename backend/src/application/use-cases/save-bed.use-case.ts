@@ -44,14 +44,19 @@ export class SaveBedUseCase {
       }
     }
 
+    // The DTO is passed through to the repository as-is, so anything extra a client sends
+    // would be written. `statusSetManually` decides whether the importer may touch this
+    // bed's status, and is only ever set by the activation route — never by a general edit.
+    const { statusSetManually: _ignored, ...fields } = dto as SaveBedDto & { statusSetManually?: unknown };
+
     let existing: Bed | null = null;
     let bed: Bed;
     if (dto.id) {
       existing = await this.repo.findById(dto.id);
       if (!existing) throw new NotFoundException(`Bed ${dto.id} not found`);
-      bed = await this.repo.save(dto as any);
+      bed = await this.repo.save(fields as any);
     } else {
-      bed = await this.repo.save({ ...dto, status: 'vacant' } as any);
+      bed = await this.repo.save({ ...fields, status: 'vacant' } as any);
     }
 
     // Rent/deposit changed (or this is a brand-new bed) — snapshot it so past rates stay

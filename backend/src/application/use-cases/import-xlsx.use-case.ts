@@ -455,7 +455,10 @@ export class ImportXlsxUseCase {
 
     // Status is normally left alone on upsert, so a re-import doesn't wipe out which beds
     // are currently allocated. A Z bedroom is the exception: it describes the bed itself,
-    // so it is applied on every import.
+    // so it is applied on every import — unless someone has since set the status by hand,
+    // in which case the system wins and the sheet is ignored for this bed.
+    const existing = await this.bedRepo.findByPropertyAndNumber(property.id, row.bedNumber);
+    const manual = existing?.statusSetManually ?? false;
     const inactive = isInactiveBedroomLetter(row.bedroomLetter);
     const bed = await this.bedRepo.upsertByPropertyAndNumber({
       propertyId: property.id,
@@ -466,7 +469,7 @@ export class ImportXlsxUseCase {
       bedSize: row.bedSize,
       depositAmount: row.depositAmount,
       rentAmount: row.rentAmount,
-      ...(inactive ? { status: 'inactive' as const } : {}),
+      ...(inactive && !manual ? { status: 'inactive' as const } : {}),
     });
 
     // The reverse correction: a bed that is no longer a Z has to become lettable again, or
@@ -474,7 +477,7 @@ export class ImportXlsxUseCase {
     // whatever it was before — `inactive` is a third state, not a flavour of vacant, so
     // there is nothing to restore. If someone is actually in it, the booking pass below
     // sets `allocated`.
-    if (!inactive && bed.status === 'inactive') {
+    if (!inactive && !manual && bed.status === 'inactive') {
       return { property, bed: await this.bedRepo.save({ id: bed.id, status: 'vacant' }) };
     }
 
