@@ -80,7 +80,7 @@ const REGISTRY: Record<ReportEntityKey, RegistryEntity> = {
     fields: [
       f('bedNumber', 'Bed Number', 'number'),
       f('name', 'Bed Name', 'string'),
-      f('status', 'Status', 'enum', { enumValues: ['vacant', 'allocated'] }),
+      f('status', 'Status', 'enum', { enumValues: ['vacant', 'allocated', 'inactive'] }),
       f('bedroomType', 'Bedroom Type', 'string'),
       f('sex', 'Sex', 'string'),
       f('bedSize', 'Bed Size', 'string'),

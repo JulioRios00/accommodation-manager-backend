@@ -73,7 +73,12 @@ export class CheckoutUseCase {
       checkOutDate: new Date(dto.checkoutDate),
     });
 
-    await this.bedRepo.save({ id: booking.bedId, status: 'vacant' });
+    // An inactive bed stays inactive when its occupant leaves; checking someone out
+    // frees the bed, it does not put it back into lettable stock.
+    const bed = await this.bedRepo.findById(booking.bedId);
+    if (bed?.status !== 'inactive') {
+      await this.bedRepo.save({ id: booking.bedId, status: 'vacant' });
+    }
 
     const record = await this.checkoutRepo.save({
       bookingId: dto.bookingId,

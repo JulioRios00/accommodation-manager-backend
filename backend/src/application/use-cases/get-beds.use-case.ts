@@ -19,9 +19,17 @@ export class GetBedsUseCase {
     const activeBookings = await this.bookingRepo.findAll('active');
     const bookingByBed = new Map(activeBookings.map((b) => [b.bedId, b]));
 
+    // Occupancy is derived from the live bookings, but 'inactive' is a decision someone
+    // made about the bed itself — it outranks the derivation, or a deactivated bed would
+    // read as lettable again on the very next page load.
     return beds.map((bed) => ({
       ...bed,
-      status: bookingByBed.has(bed.id) ? 'allocated' : 'vacant',
+      status:
+        bed.status === 'inactive'
+          ? 'inactive'
+          : bookingByBed.has(bed.id)
+            ? 'allocated'
+            : 'vacant',
       activeBooking: bookingByBed.get(bed.id) ?? null,
     }));
   }

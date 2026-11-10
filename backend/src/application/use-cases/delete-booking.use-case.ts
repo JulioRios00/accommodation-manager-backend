@@ -19,7 +19,11 @@ export class DeleteBookingUseCase {
     const remaining = await this.repo.findByBedId(existing.bedId);
     const hasActive = remaining.some((b) => b.id !== id && b.status === 'active');
     if (!hasActive) {
-      await this.bedRepo.save({ id: existing.bedId, status: 'vacant' });
+      // Same rule as checkout: deleting the booking must not revive a deactivated bed.
+      const bed = await this.bedRepo.findById(existing.bedId);
+      if (bed?.status !== 'inactive') {
+        await this.bedRepo.save({ id: existing.bedId, status: 'vacant' });
+      }
     }
 
     await this.auditLog.record({

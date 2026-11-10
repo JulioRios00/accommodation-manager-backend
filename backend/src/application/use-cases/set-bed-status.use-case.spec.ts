@@ -51,13 +51,22 @@ describe('SetBedStatusUseCase', () => {
   });
 
   it('leaves an already-correct bed alone instead of writing to it', async () => {
-    const already = build({ bed: { status: 'inactive' } });
+    const already = build({ bed: { status: 'inactive', statusSetManually: true } });
     await already.useCase.execute('bed-1', 'deactivate');
     expect(already.saved).toHaveLength(0);
 
     const lettable = build({ bed: { status: 'allocated' }, bookings: occupied });
     await lettable.useCase.execute('bed-1', 'activate');
     expect(lettable.saved).toHaveLength(0);
+  });
+
+  // The importer deactivates Z beds without claiming them. Deactivating such a bed by
+  // hand changes no status, but it does take the status away from the importer.
+  it('claims a bed the sheet deactivated, without counting it as a change', async () => {
+    const { useCase, saved } = build({ bed: { status: 'inactive', statusSetManually: false } });
+    const res = await useCase.executeMany(['bed-1'], 'deactivate');
+    expect(res).toMatchObject({ changed: 0, unchanged: 1 });
+    expect(saved).toEqual([{ id: 'bed-1', status: 'inactive', statusSetManually: true }]);
   });
 
   it('records who changed it', async () => {
@@ -104,7 +113,8 @@ describe('SetBedStatusUseCase', () => {
       expect(res.unchanged).toBe(1);
       expect(res.failed.map(f => f.id)).toEqual(['bed-b', 'bed-missing']);
       expect(res.failed[0].reason).toContain('Ana Silva');
-      expect(saved.map(b => b.id)).toEqual(['bed-a', 'bed-d']);
+      // bed-c was already inactive: no status change, but it is now manually owned.
+      expect(saved.map(b => b.id)).toEqual(['bed-a', 'bed-c', 'bed-d']);
     });
 
     it('counts a repeated id once', async () => {

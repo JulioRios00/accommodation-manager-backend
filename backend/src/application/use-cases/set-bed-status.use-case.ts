@@ -83,7 +83,13 @@ export class SetBedStatusUseCase {
           `This bed is occupied by ${occupant}. End or move the booking before deactivating the bed.`,
         );
       }
-      if (bed.status === 'inactive') return { bed, changed: false };
+      // Already inactive, but possibly only because the sheet said so. Deactivating it
+      // by hand is a claim of ownership, so stamp the flag — otherwise the next import
+      // would be free to put the bed back into stock.
+      if (bed.status === 'inactive') {
+        const owned = bed.statusSetManually ? bed : await this.apply(bed, 'inactive', actor);
+        return { bed: owned, changed: false };
+      }
       return { bed: await this.apply(bed, 'inactive', actor), changed: true };
     }
 

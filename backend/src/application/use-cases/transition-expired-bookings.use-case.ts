@@ -34,7 +34,12 @@ export class TransitionExpiredBookingsUseCase {
       const remaining = await this.bookingRepo.findByBedId(booking.bedId);
       const hasActive = remaining.some(b => b.status === 'active');
       if (!hasActive) {
-        await this.bedRepo.save({ id: booking.bedId, status: 'vacant' });
+        // Freeing the bed must not undo a deactivation — an inactive bed is out of
+        // lettable stock whether or not anyone is in it.
+        const bed = await this.bedRepo.findById(booking.bedId);
+        if (bed?.status !== 'inactive') {
+          await this.bedRepo.save({ id: booking.bedId, status: 'vacant' });
+        }
       }
     }
 
