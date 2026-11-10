@@ -73,6 +73,65 @@ describe('SetBedStatusUseCase', () => {
     );
   });
 
+  describe('in bulk', () => {
+    /** Beds keyed by id, so one run can mix empty, occupied and already-inactive. */
+    function buildMany(byId: Record<string, { status: string; occupied?: boolean }>) {
+      const saved: any[] = [];
+      const bedRepo: any = {
+        findById: jest.fn(async (id: string) => (byId[id] ? bed({ id, status: byId[id].status }) : null)),
+        save: jest.fn(async (b: any) => { saved.push(b); return { ...bed(b), ...b }; }),
+      };
+      const bookingRepo: any = {
+        findByBedId: jest.fn(async (id: string) => (byId[id]?.occupied ? occupied : [])),
+      };
+      const auditLog: any = { record: jest.fn(async () => undefined) };
+      return { useCase: new SetBedStatusUseCase(bedRepo, bookingRepo, auditLog), saved };
+    }
+
+    // A half-applied batch is the right outcome: the beds that can be deactivated should
+    // be, and the occupied one is a booking for someone to deal with — not a reason to
+    // undo the rest.
+    it('carries on past the beds it cannot change and reports each one', async () => {
+      const { useCase, saved } = buildMany({
+        'bed-a': { status: 'vacant' },
+        'bed-b': { status: 'allocated', occupied: true },
+        'bed-c': { status: 'inactive' },
+        'bed-d': { status: 'vacant' },
+      });
+      const res = await useCase.executeMany(['bed-a', 'bed-b', 'bed-c', 'bed-d', 'bed-missing'], 'deactivate');
+
+      expect(res.changed).toBe(2);
+      expect(res.unchanged).toBe(1);
+      expect(res.failed.map(f => f.id)).toEqual(['bed-b', 'bed-missing']);
+      expect(res.failed[0].reason).toContain('Ana Silva');
+      expect(saved.map(b => b.id)).toEqual(['bed-a', 'bed-d']);
+    });
+
+    it('counts a repeated id once', async () => {
+      const { useCase, saved } = buildMany({ 'bed-a': { status: 'vacant' } });
+      const res = await useCase.executeMany(['bed-a', 'bed-a', 'bed-a'], 'deactivate');
+      expect(res).toMatchObject({ changed: 1, unchanged: 0 });
+      expect(saved).toHaveLength(1);
+    });
+
+    it('refuses a batch larger than the limit rather than holding a connection open', async () => {
+      const { useCase, saved } = buildMany({});
+      const tooMany = Array.from({ length: 501 }, (_, i) => `bed-${i}`);
+      await expect(useCase.executeMany(tooMany, 'deactivate')).rejects.toBeInstanceOf(BadRequestException);
+      expect(saved).toHaveLength(0);
+    });
+
+    it('reactivates a mixed selection to the state each bed is actually in', async () => {
+      const { useCase, saved } = buildMany({
+        'bed-a': { status: 'inactive' },
+        'bed-b': { status: 'inactive', occupied: true },
+      });
+      const res = await useCase.executeMany(['bed-a', 'bed-b'], 'activate');
+      expect(res.changed).toBe(2);
+      expect(saved.map(b => b.status)).toEqual(['vacant', 'allocated']);
+    });
+  });
+
   it('404s on a bed that does not exist', async () => {
     const { useCase } = build({ bed: null });
     await expect(useCase.execute('nope', 'deactivate')).rejects.toBeInstanceOf(NotFoundException);

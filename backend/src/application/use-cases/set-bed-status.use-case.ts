@@ -8,6 +8,19 @@ import { Actor, AuditLogService } from '../services/audit-log.service';
  *  becomes `vacant` or `allocated` depending on who is in it, which is ours to work out. */
 export type BedActivation = 'activate' | 'deactivate';
 
+/** Outcome of a bulk run. Beds that were refused are listed individually: a bare
+ *  "4 failed" sends someone hunting through the grid for which four. */
+export interface BulkActivationResult {
+  changed: number;
+  /** Already in the requested state — not an error, and not worth a line each. */
+  unchanged: number;
+  failed: { id: string; reason: string }[];
+}
+
+/** Ceiling on one bulk request. Each bed is a few queries, so an unbounded list would
+ *  hold a connection for as long as someone cared to make it. */
+export const MAX_BULK_BEDS = 500;
+
 /**
  * Takes a bed out of lettable stock, or puts it back.
  *
@@ -25,6 +38,37 @@ export class SetBedStatusUseCase {
   ) {}
 
   async execute(id: string, action: BedActivation, actor?: Actor): Promise<Bed> {
+    return (await this.change(id, action, actor)).bed;
+  }
+
+  /**
+   * The same operation over many beds, carrying on past the ones it cannot do.
+   *
+   * A half-applied batch is the right outcome here: the beds that can be deactivated
+   * should be, and the occupied ones are a list of bookings for someone to deal with —
+   * not a reason to undo the rest. Sequential rather than parallel, so the audit log
+   * reads in the order the user chose and the database sees one bed at a time.
+   */
+  async executeMany(ids: string[], action: BedActivation, actor?: Actor): Promise<BulkActivationResult> {
+    if (ids.length > MAX_BULK_BEDS) {
+      throw new BadRequestException(`Too many beds in one request (limit ${MAX_BULK_BEDS})`);
+    }
+
+    const result: BulkActivationResult = { changed: 0, unchanged: 0, failed: [] };
+    // Duplicates in the request would otherwise be counted twice.
+    for (const id of [...new Set(ids)]) {
+      try {
+        const { changed } = await this.change(id, action, actor);
+        if (changed) result.changed++;
+        else result.unchanged++;
+      } catch (err: any) {
+        result.failed.push({ id, reason: err?.message ?? 'Could not change this bed' });
+      }
+    }
+    return result;
+  }
+
+  private async change(id: string, action: BedActivation, actor?: Actor): Promise<{ bed: Bed; changed: boolean }> {
     const bed = await this.bedRepo.findById(id);
     if (!bed) throw new NotFoundException(`Bed ${id} not found`);
 
@@ -39,14 +83,14 @@ export class SetBedStatusUseCase {
           `This bed is occupied by ${occupant}. End or move the booking before deactivating the bed.`,
         );
       }
-      if (bed.status === 'inactive') return bed;
-      return this.apply(bed, 'inactive', actor);
+      if (bed.status === 'inactive') return { bed, changed: false };
+      return { bed: await this.apply(bed, 'inactive', actor), changed: true };
     }
 
-    if (bed.status !== 'inactive') return bed;
+    if (bed.status !== 'inactive') return { bed, changed: false };
     // Back to whichever state the bookings say it is in. `inactive` is a third state, not
     // a flavour of vacant, so there is nothing to restore — it is recomputed.
-    return this.apply(bed, occupant ? 'allocated' : 'vacant', actor);
+    return { bed: await this.apply(bed, occupant ? 'allocated' : 'vacant', actor), changed: true };
   }
 
   /** The name of the resident currently in the bed, or null if it is empty. */

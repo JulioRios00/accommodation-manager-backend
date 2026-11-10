@@ -40,6 +40,29 @@ export class BedsController {
    * details: it marks the status as manually owned, which stops the importer from
    * changing it, and a full-object PUT would do that on every unrelated field change.
    */
+  /**
+   * The same thing over a selection from the grid.
+   *
+   * Declared before PATCH :id/activation so Nest's route table does not read "activation"
+   * as an :id. It reports per-bed outcomes instead of failing as a unit: the beds that
+   * can be deactivated should be, and the occupied ones are a list to act on.
+   */
+  @Patch('activation')
+  @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
+  async setActivationBulk(
+    @Body('ids') ids: unknown,
+    @Body('action') action: unknown,
+    @CurrentActor() actor?: Actor,
+  ) {
+    if (action !== 'activate' && action !== 'deactivate') {
+      throw new BadRequestException("action must be 'activate' or 'deactivate'");
+    }
+    if (!Array.isArray(ids) || ids.some(id => typeof id !== 'string')) {
+      throw new BadRequestException('ids must be an array of bed ids');
+    }
+    return this.setBedStatus.executeMany(ids as string[], action as BedActivation, actor);
+  }
+
   @Patch(':id/activation')
   @Roles('sysadmin', 'manager', 'administrator', 'staff', 'maintenance')
   async setActivation(
