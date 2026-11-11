@@ -76,6 +76,26 @@ function toDate(v: any): Date | null {
   return null;
 }
 
+/**
+ * Rows as arrays indexed by real column letter: index 0 is always column A.
+ *
+ * `sheet_to_json` indexes from the sheet's own used range, not from column A, so a sheet
+ * whose range starts at B1 (common once a leading column is deleted or hidden) shifts
+ * every index left by one — the WASTE tab did exactly this, which is why the property
+ * code was being read out of column G instead of F. Forcing the range to start at A1
+ * makes the indices below mean what their comments say; it is a no-op on a sheet that
+ * already starts at A.
+ */
+export function rowsByColumn(sheet: XLSX.WorkSheet): any[][] {
+  const ref = sheet['!ref'];
+  if (!ref) return [];
+  // Only the column origin is forced — the first row stays wherever the sheet's own range
+  // puts it, so the "skip the header row" offsets below keep meaning what they did.
+  const { s: start, e: end } = XLSX.utils.decode_range(ref);
+  const range = XLSX.utils.encode_range({ s: { r: start.r, c: 0 }, e: end });
+  return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, range });
+}
+
 export function parseBills(buffer: Buffer): ParsedBills {
   const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
   const result: ParsedBills = { electricityGas: [], waste: [], internet: [] };
@@ -83,7 +103,7 @@ export function parseBills(buffer: Buffer): ParsedBills {
   // --- Electricity + Gas sheet (first sheet, "Mach Educational" or similar) ---
   const elecSheet = wb.Sheets[wb.SheetNames[0]];
   if (elecSheet) {
-    const rows: any[][] = XLSX.utils.sheet_to_json(elecSheet, { header: 1, defval: null });
+    const rows = rowsByColumn(elecSheet);
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       if (!r || !r[0] || typeof r[0] !== 'string' || r[0].trim().length < 5) continue;
@@ -107,9 +127,10 @@ export function parseBills(buffer: Buffer): ParsedBills {
   // --- Waste sheet (second sheet) ---
   const wasteSheet = wb.Sheets[wb.SheetNames[1]];
   if (wasteSheet) {
-    const rows: any[][] = XLSX.utils.sheet_to_json(wasteSheet, { header: 1, defval: null });
+    const rows = rowsByColumn(wasteSheet);
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
+      // Column F — the property code.
       const code = toStr(r[5]);
       if (!code) continue;
       result.waste.push({
@@ -129,7 +150,7 @@ export function parseBills(buffer: Buffer): ParsedBills {
   // --- Internet sheet (third sheet) ---
   const netSheet = wb.Sheets[wb.SheetNames[2]];
   if (netSheet) {
-    const rows: any[][] = XLSX.utils.sheet_to_json(netSheet, { header: 1, defval: null });
+    const rows = rowsByColumn(netSheet);
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       const code = toStr(r[4]);
