@@ -15,7 +15,10 @@ export class ImportMaintenanceUseCase {
 
   async execute(buffer: Buffer): Promise<{ imported: number; skipped: number; skipReasons: ImportSkipReason[] }> {
     const rows = parseMaintenance(buffer);
-    const properties = await this.propertyRepo.findAll();
+    // A property out of lease is still the property these rows belong to — its bills,
+    // tickets and payments carry on existing. Excluding it only turns real rows into
+    // "property not found" skips, so the lookup covers every property.
+    const properties = await this.propertyRepo.findAll(true);
     const byCode = new Map(properties.map(p => [p.code.toLowerCase(), p]));
 
     // Load all existing tickets for upsert by orderNumber

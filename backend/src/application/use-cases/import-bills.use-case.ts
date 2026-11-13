@@ -16,7 +16,10 @@ export class ImportBillsUseCase {
 
   async execute(buffer: Buffer): Promise<{ updated: number; skipped: number; gprnConflicts: number; skipReasons: ImportSkipReason[] }> {
     const parsed = parseBills(buffer);
-    const all = await this.repo.findAll();
+    // A property out of lease is still the property these rows belong to — its bills,
+    // tickets and payments carry on existing. Excluding it only turns real rows into
+    // "property not found" skips, so the lookup covers every property.
+    const all = await this.repo.findAll(true);
     const byCode = new Map(all.map(p => [p.code.toLowerCase(), p]));
     const byAddress = new Map(all.map(p => [p.fullAddress?.toLowerCase() ?? '', p]));
 

@@ -38,7 +38,10 @@ export class ImportDepositsUseCase {
 
   async execute(buffer: Buffer): Promise<{ imported: number; updated: number; skipped: number; skipReasons: ImportSkipReason[] }> {
     const rows = parseDeposits(buffer);
-    const properties = await this.propertyRepo.findAll();
+    // A property out of lease is still the property these rows belong to — its bills,
+    // tickets and payments carry on existing. Excluding it only turns real rows into
+    // "property not found" skips, so the lookup covers every property.
+    const properties = await this.propertyRepo.findAll(true);
     const byCode = new Map(properties.map(p => [p.code.toLowerCase(), p]));
     const residents = await this.residentRepo.findAll();
     const byName = new Map(residents.map(r => [r.fullName.toLowerCase().trim(), r]));
